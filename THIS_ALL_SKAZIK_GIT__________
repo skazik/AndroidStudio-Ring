@@ -1,0 +1,16 @@
+# alias whatgit='git config --get remote.origin.url'
+# source me!!!
+echo "$ git config --get remote.origin.url"
+git config --get remote.origin.url
+string=$(git config --get remote.origin.url)
+
+if [[ $string == *"skazik"* ]]
+then
+  echo "-- SKAZIK --"
+elif [[ $string == *"sergekazik"* ]]
+then
+  echo "-- RING: SERGEKAZIK --"
+else
+  echo "-- have no idea who -check yourself --"
+fi
+

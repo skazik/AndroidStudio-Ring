@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Test1</string>
+    <string name="app_name">Ring BLE test1</string>
     <string name="action_settings">Settings</string>
 </resources>
