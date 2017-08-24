@@ -1,7 +1,7 @@
 clear
 git st
-comment="auto save "
-comment=+$(date)
+comment="automatic save "
+comment+=$(date)
 git commit -am "$comment"
 git push origin master
 git st
