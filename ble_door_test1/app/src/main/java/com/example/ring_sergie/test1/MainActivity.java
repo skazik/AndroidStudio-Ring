@@ -49,7 +49,7 @@ import android.content.Context;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "skazik";
+    private static final String TAG = "sergei.ka";
     private static final boolean START_SCAN = true;
     private static final boolean STOP_SCAN = false;
     private Button mButton;
