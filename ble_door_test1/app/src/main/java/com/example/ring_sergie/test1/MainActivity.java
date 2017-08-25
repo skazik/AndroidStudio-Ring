@@ -133,52 +133,6 @@ public class MainActivity extends AppCompatActivity {
             }
             sendBroadcast(intent);
         }
-        // Various callback methods defined by the BLE API.
-        private final BluetoothGattCallback mGattCallback;
-        {
-            mGattCallback = new BluetoothGattCallback() {
-                @Override
-                public void onConnectionStateChange(BluetoothGatt gatt, int status,
-                                                    int newState) {
-                    String intentAction;
-                    if (newState == BluetoothProfile.STATE_CONNECTED) {
-                        intentAction = ACTION_GATT_CONNECTED;
-                        mConnectionState = STATE_CONNECTED;
-                        broadcastUpdate(intentAction);
-                        Log.i(TAG, "Connected to GATT server.");
-                        Log.i(TAG, "Attempting to start service discovery:" +
-                                mBluetoothGatt.discoverServices());
-
-                    } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                        intentAction = ACTION_GATT_DISCONNECTED;
-                        mConnectionState = STATE_DISCONNECTED;
-                        Log.i(TAG, "Disconnected from GATT server.");
-                        broadcastUpdate(intentAction);
-                    }
-                }
-
-                @Override
-                // New services discovered
-                public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                    if (status == BluetoothGatt.GATT_SUCCESS) {
-                        broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
-                    } else {
-                        Log.w(TAG, "onServicesDiscovered received: " + status);
-                    }
-                }
-
-                @Override
-                // Result of a characteristic read operation
-                public void onCharacteristicRead(BluetoothGatt gatt,
-                                                 BluetoothGattCharacteristic characteristic,
-                                                 int status) {
-                    if (status == BluetoothGatt.GATT_SUCCESS) {
-                        broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-                    }
-                }
-            };
-        }
-
         @Nullable
         @Override
         public IBinder onBind(Intent intent) {
@@ -260,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(getBaseContext(), text, bLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void handleFound(BluetoothDevice device)
     {
         String deviceName = device.getName() != null ? device.getName() : "UNKNOWN";
@@ -282,6 +237,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             switch (action)
@@ -449,6 +405,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onLeScan(final BluetoothDevice device, int rssi,
                                      byte[] scanRecord) {
                     runOnUiThread(new Runnable() {
+                        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
                         @Override
                         public void run() {
                             handleFound(device);
@@ -509,7 +466,7 @@ public class MainActivity extends AppCompatActivity {
             if (mDevice != null) {
                 if (mCheckBox.isChecked()) {
                     mBleService = new BluetoothLeService();
-                    mBleService.mBluetoothGatt = mDevice.connectGatt(this, false, mBleService.mGattCallback);
+                    mBleService.mBluetoothGatt = mDevice.connectGatt(this, false, mBleService.mGamGattCallback);
                 }
                 else {
                     ConnectThread mConnect = new ConnectThread(mDevice);
@@ -587,6 +544,7 @@ public class MainActivity extends AppCompatActivity {
 // ACTION_DATA_AVAILABLE: received data from the device. This can be a
 // result of read or notification operations.
     private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
@@ -599,11 +557,9 @@ public class MainActivity extends AppCompatActivity {
                 updateConnectionState(R.string.disconnected);
                 invalidateOptionsMenu();
                 // clearUI();
-            } else if (BluetoothLeService.
-                    ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
-                // Show all the supported services and characteristics on the
-                // user interface.
-                // displayGattServices(mBluetoothLeService.getSupportedGattServices());
+            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
+                // Show all the supported services and characteristics on the user interface.
+                displayGattServices(mBleService.mBluetoothGatt.getServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 // displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
             }
