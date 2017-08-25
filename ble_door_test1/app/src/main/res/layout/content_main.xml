@@ -8,27 +8,18 @@
     tools:context="com.example.ring_sergie.test1.MainActivity"
     tools:showIn="@layout/activity_main">
 
-    <TextView
-        android:id="@+id/text_view_id"
+    <CheckBox
+        android:id="@+id/checkBox1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Test App N 1"
+        android:text="BLE scan"
+        android:onClick="OnCheckBoxClick"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintHorizontal_bias="0.501"
-        app:layout_constraintVertical_bias="0.392" />
-
-    <TextView
-        android:id="@+id/textView1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="____________"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        android:layout_marginBottom="247dp" />
+        app:layout_constraintVertical_bias="0.962"
+        app:layout_constraintHorizontal_bias="0.054" />
 
     <Button
         android:id="@+id/button1"
@@ -42,19 +33,43 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.282" />
+        app:layout_constraintVertical_bias="0.96"
+        app:layout_constraintHorizontal_bias="0.57" />
 
-    <CheckBox
-        android:id="@+id/checkBox1"
+    <TextView
+        android:id="@+id/text_view_id"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="BLE scan"
-        android:onClick="OnCheckBoxClick"
+        android:text="Test App N 1"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.146"
-        app:layout_constraintHorizontal_bias="0.488" />
+        app:layout_constraintVertical_bias="0.682"
+        app:layout_constraintHorizontal_bias="0.501" />
+
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="additional info"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_below="@+id/text_view_id"
+        app:layout_constraintHorizontal_bias="0.501"
+        android:layout_marginBottom="109dp" />
+
+    <ExpandableListView
+        android:id="@+id/lvExp"
+        android:background="@android:color/holo_blue_bright"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/text_view_id"
+        app:layout_constraintHorizontal_bias="0.0"
+        android:layout_height="323dp"
+        android:layout_width="389dp"
+        app:layout_constraintVertical_bias="0.0" />
 
 </android.support.constraint.ConstraintLayout>
