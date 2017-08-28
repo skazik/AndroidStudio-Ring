@@ -1,6 +1,7 @@
 package com.example.ring_sergie.test1;
 
 import android.Manifest;
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -41,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "sergei.ka";
@@ -49,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private Button mButton;
     private TextView helloTextView;
     private TextView mTextView;
-    private CheckBox mCheckBox;
+    private CheckBox mBLEscanCheckBox;
     private BluetoothAdapter mBluetoothAdapter;
     private final static int REQUEST_ENABLE_BT = 1;
     private BluetoothDevice mDevice = null;
@@ -65,81 +67,7 @@ public class MainActivity extends AppCompatActivity {
     List<String> listDataHeader;
     HashMap<String, List<String>> listDataChild;
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    private class BluetoothLeService extends android.app.Service {
-        private final String TAG = com.example.ring_sergie.test1.BluetoothLeService.class.getSimpleName();
-
-        public BluetoothGatt mBluetoothGatt;
-
-        private BluetoothManager mBluetoothManager;
-        private BluetoothAdapter mBluetoothAdapter;
-        private String mBluetoothDeviceAddress;
-        private int mConnectionState = STATE_DISCONNECTED;
-
-        private static final int STATE_DISCONNECTED = 0;
-        private static final int STATE_CONNECTING = 1;
-        private static final int STATE_CONNECTED = 2;
-
-        public final static String ACTION_GATT_CONNECTED =
-                "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
-        public final static String ACTION_GATT_DISCONNECTED =
-                "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
-        public final static String ACTION_GATT_SERVICES_DISCOVERED =
-                "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
-        public final static String ACTION_DATA_AVAILABLE =
-                "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-        public final static String EXTRA_DATA =
-                "com.example.bluetooth.le.EXTRA_DATA";
-
-        public final UUID UUID_HEART_RATE_MEASUREMENT = UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
-
-        private void broadcastUpdate(final String action) {
-            final Intent intent = new Intent(action);
-            sendBroadcast(intent);
-        }
-
-        public void sendBroadcast(Intent intent) {
-        }
-
-        private void broadcastUpdate(final String action,
-                                     final BluetoothGattCharacteristic characteristic) {
-            final Intent intent = new Intent(action);
-
-            // This is special handling for the Heart Rate Measurement profile. Data
-            // parsing is carried out as per profile specifications.
-            if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
-                int flag = characteristic.getProperties();
-                int format = -1;
-                if ((flag & 0x01) != 0) {
-                    format = BluetoothGattCharacteristic.FORMAT_UINT16;
-                    Log.d(TAG, "Heart rate format UINT16.");
-                } else {
-                    format = BluetoothGattCharacteristic.FORMAT_UINT8;
-                    Log.d(TAG, "Heart rate format UINT8.");
-                }
-                final int heartRate = characteristic.getIntValue(format, 1);
-                Log.d(TAG, String.format("Received heart rate: %d", heartRate));
-                intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
-            } else {
-                // For all other profiles, writes the data formatted in HEX.
-                final byte[] data = characteristic.getValue();
-                if (data != null && data.length > 0) {
-                    final StringBuilder stringBuilder = new StringBuilder(data.length);
-                    for(byte byteChar : data)
-                        stringBuilder.append(String.format("%02X ", byteChar));
-                    intent.putExtra(EXTRA_DATA, new String(data) + "\n" +
-                            stringBuilder.toString());
-                }
-            }
-            sendBroadcast(intent);
-        }
-        @Nullable
-        @Override
-        public IBinder onBind(Intent intent) {
-            return null;
-        }
-    }
-
+    // this it standard BT connection class
     private class ConnectThread extends Thread {
         private static final String TAG = "skazik-socket";
         public BluetoothSocket mmSocket = null;
@@ -200,6 +128,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+    // end of Thread Connection (BT) class
+
 
     public void debugout(String text)
     {
@@ -240,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
         @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            debugout("mReceiver: " + action.toString());
             switch (action)
             {
                 case BluetoothAdapter.ACTION_STATE_CHANGED: debugout("ACTION_STATE_CHANGED"); break;
@@ -275,7 +206,8 @@ public class MainActivity extends AppCompatActivity {
         mButton = (Button) findViewById(R.id.button1);
         helloTextView = (TextView) findViewById(R.id.text_view_id);
         mTextView =  (TextView) findViewById(R.id.textView1);
-        mCheckBox = (CheckBox) findViewById(R.id.checkBox1);
+        mBLEscanCheckBox = (CheckBox) findViewById(R.id.checkBox1);
+        mBLEscanCheckBox.setChecked(true);
 
         // Bluetooth section
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -304,6 +236,11 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        filter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        filter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        filter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        filter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        filter.addAction(BluetoothLeService.EXTRA_DATA);
 
         registerReceiver(mReceiver, filter);
 
@@ -368,9 +305,8 @@ public class MainActivity extends AppCompatActivity {
 
         scan_discover(STOP_SCAN);
 
-        if (mBleService != null && mBleService.mBluetoothGatt != null) {
-            mBleService.mBluetoothGatt.close();
-            mBleService.mBluetoothGatt = null;
+        if (mBleService != null ) {
+            mBleService.BluetoothGatt_close();
         }
         // Don't forget to unregister the ACTION_FOUND receiver.
         unregisterReceiver(mReceiver);
@@ -420,7 +356,7 @@ public class MainActivity extends AppCompatActivity {
         if (bStart && !bScanInProgress)
         {
             bScanInProgress = true;
-            if (mCheckBox.isChecked()) {
+            if (mBLEscanCheckBox.isChecked()) {
                 mBluetoothAdapter.startLeScan(mLeScanCallback);
             }
             else {
@@ -432,7 +368,7 @@ public class MainActivity extends AppCompatActivity {
         else if (!bStart && bScanInProgress)
         {
             bScanInProgress = false;
-            if (mCheckBox.isChecked()) {
+            if (mBLEscanCheckBox.isChecked()) {
                 mBluetoothAdapter.stopLeScan(mLeScanCallback);
             }
             else
@@ -441,7 +377,7 @@ public class MainActivity extends AppCompatActivity {
             }
             mButton.setText(bFound ? "Connect" : "Scan");
         }
-        mCheckBox.setEnabled(!bScanInProgress);
+        mBLEscanCheckBox.setEnabled(!bScanInProgress);
     }
 
 
@@ -464,9 +400,9 @@ public class MainActivity extends AppCompatActivity {
         {
             debugout("trying to connect " + mDevice.getAddress() + "\r\n" + msUUID);
             if (mDevice != null) {
-                if (mCheckBox.isChecked()) {
+                if (mBLEscanCheckBox.isChecked()) {
                     mBleService = new BluetoothLeService();
-                    mBleService.mBluetoothGatt = mDevice.connectGatt(this, false, mBleService.mGamGattCallback);
+                    mBleService.BluetoothGatt_connectGatt(mDevice, this, false);
                 }
                 else {
                     ConnectThread mConnect = new ConnectThread(mDevice);
@@ -548,6 +484,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
+            debugout("mGattUpdateReceiver: " + action.toString(), false);
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mBLEConnected = true;
                 updateConnectionState(R.string.connected);
@@ -559,7 +496,7 @@ public class MainActivity extends AppCompatActivity {
                 // clearUI();
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 // Show all the supported services and characteristics on the user interface.
-                displayGattServices(mBleService.mBluetoothGatt.getServices());
+                displayGattServices(mBleService.BluetoothGatt_getServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 // displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
             }
@@ -570,3 +507,4 @@ public class MainActivity extends AppCompatActivity {
         debugout(getResources().getString(connected).toString(), false);
     }
 }
+
