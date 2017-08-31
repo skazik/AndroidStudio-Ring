@@ -37,6 +37,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -387,7 +389,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    public void OnButtonClick(View v) {
+    public void OnButtonClick(View v) throws IOException {
 
         if (!bFound) {
             if (bScanInProgress) {
@@ -401,8 +403,63 @@ public class MainActivity extends AppCompatActivity {
             debugout("trying to connect " + mDevice.getAddress() + "\r\n" + msUUID);
             if (mDevice != null) {
                 if (mBLEscanCheckBox.isChecked()) {
-                    mBleService = new BluetoothLeService();
-                    mBleService.BluetoothGatt_connectGatt(mDevice, this, false);
+//                    mBleService = new BluetoothLeService();
+//                    mBleService.BluetoothGatt_connectGatt(mDevice, this, false);
+
+                    BluetoothSocket mSocket = null;
+                    try {
+                        mSocket = mDevice.createInsecureRfcommSocketToServiceRecord(UUID.fromString(msUUID));
+                    } catch (IOException e) {
+                        Log.e(TAG, "mSockets not created", e);
+                        e.printStackTrace();
+                        return;
+                    }
+
+//                    try {
+//                        mSocket.connect();
+//                    } catch (IOException connectException) {
+//                        debugout("Unable to connect, exception " + connectException.toString() + "\r\n" + "close the socket and return.");
+//                        try {
+//                            mSocket.close();
+//                        } catch (IOException closeException) {
+//                            Log.e(TAG, "Could not close the client socket", closeException);
+//                        }
+//                        return;
+//                    }
+
+                    InputStream tmpIn = null;
+                    OutputStream tmpOut = null;
+
+                    // Get the BluetoothSocket input and output streams
+                    try {
+                        tmpIn = mSocket.getInputStream();
+                        tmpOut = mSocket.getOutputStream();
+                    } catch (IOException e) {
+                        Log.e(TAG, "getting io streams failed", e);
+                        try {
+                            mSocket.close();
+                        } catch (IOException closeException) {
+                            Log.e(TAG, "Could not close the client socket", closeException);
+                        }
+                        e.printStackTrace();
+                        return;
+                    }
+
+                    if (tmpOut != null) {
+                        String text = "ringling ring";
+                        byte[] data = text.getBytes();
+                        tmpOut.write(data);
+                    }
+                    else {
+                        Log.e(TAG, "tnlOUt is null..... :-(");
+                    }
+
+                    try {
+                        mSocket.close();
+                    } catch (IOException closeException) {
+                        Log.e(TAG, "Could not close the client socket", closeException);
+                    }
+
                 }
                 else {
                     ConnectThread mConnect = new ConnectThread(mDevice);
