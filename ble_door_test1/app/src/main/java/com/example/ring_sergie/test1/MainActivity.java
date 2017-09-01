@@ -68,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
     ExpandableListView expListView;
     List<String> listDataHeader;
     HashMap<String, List<String>> listDataChild;
+    List<String> mScanBTResultList;
+    List<String> mScanLEResultList;
 
     // this it standard BT connection class
     private class ConnectThread extends Thread {
@@ -157,6 +159,11 @@ public class MainActivity extends AppCompatActivity {
         text += deviceHardwareAddress;
         debugout(text);
 
+        if (mBLEscanCheckBox.isChecked())
+            mScanLEResultList.add(deviceHardwareAddress + "\r\n" + deviceName);
+        else
+            mScanBTResultList.add(deviceHardwareAddress + "\r\n" + deviceName);
+
         if (!bFound && deviceName.contains("Ampak"))
         {
             scan_discover(STOP_SCAN);
@@ -164,6 +171,11 @@ public class MainActivity extends AppCompatActivity {
             mDevice = device;
             mButton.setText("Connect");
             mTextView.setText(text);
+
+            if (mBLEscanCheckBox.isChecked())
+                listDataChild.put(listDataHeader.get(1), mScanLEResultList);
+            else
+                listDataChild.put(listDataHeader.get(0), mScanBTResultList); // Header, Child data
         }
 
     }
@@ -266,37 +278,30 @@ public class MainActivity extends AppCompatActivity {
         listDataChild = new HashMap<String, List<String>>();
 
         // Adding child data
-        listDataHeader.add("Top 250");
-        listDataHeader.add("Now Showing");
-        listDataHeader.add("Coming Soon..");
+        listDataHeader.add("BT scan results");
+        listDataHeader.add("Bluetooth LE scan");
+        listDataHeader.add("Help");
 
         // Adding child data
-        List<String> top250 = new ArrayList<String>();
-        top250.add("The Shawshank Redemption");
-        top250.add("The Godfather");
-        top250.add("The Godfather: Part II");
-        top250.add("Pulp Fiction");
-        top250.add("The Good, the Bad and the Ugly");
-        top250.add("The Dark Knight");
-        top250.add("12 Angry Men");
+        mScanBTResultList = new ArrayList<String>();
+        mScanBTResultList.add("...");
 
-        List<String> nowShowing = new ArrayList<String>();
-        nowShowing.add("The Conjuring");
-        nowShowing.add("Despicable Me 2");
-        nowShowing.add("Turbo");
-        nowShowing.add("Grown Ups 2");
-        nowShowing.add("Red 2");
-        nowShowing.add("The Wolverine");
+        mScanLEResultList = new ArrayList<String>();
+        mScanLEResultList.add("...");
 
         List<String> comingSoon = new ArrayList<String>();
-        comingSoon.add("2 Guns");
-        comingSoon.add("The Smurfs 2");
-        comingSoon.add("The Spectacular Now");
-        comingSoon.add("The Canyons");
-        comingSoon.add("Europa Report");
+        comingSoon.add("--up                    hciconfig hci0 up");
+        comingSoon.add("--down                  hciconfig hci0 down");
+        comingSoon.add("--piscan                hciconfig hci0 piscan");
+        comingSoon.add("--noscan                hciconfig hci0 noscan");
+        comingSoon.add("--leadv                 hciconfig hci0 leadv");
+        comingSoon.add("--noleadv               hciconfig hci0 leadv");
+        comingSoon.add("--class                 hciconfig hci0 class 0x280430");
+        comingSoon.add("--hciinit               up, piscan, class 0x280430, leadv");
+        comingSoon.add("--hcishutdown           noleadv, noscan, down");
 
-        listDataChild.put(listDataHeader.get(0), top250); // Header, Child data
-        listDataChild.put(listDataHeader.get(1), nowShowing);
+        listDataChild.put(listDataHeader.get(0), mScanBTResultList); // Header, Child data
+        listDataChild.put(listDataHeader.get(1), mScanLEResultList);
         listDataChild.put(listDataHeader.get(2), comingSoon);
     }
 
@@ -359,9 +364,11 @@ public class MainActivity extends AppCompatActivity {
         {
             bScanInProgress = true;
             if (mBLEscanCheckBox.isChecked()) {
+                mScanLEResultList.clear();
                 mBluetoothAdapter.startLeScan(mLeScanCallback);
             }
             else {
+                mScanBTResultList.clear();
                 mBluetoothAdapter.startDiscovery();
             }
 
@@ -403,63 +410,8 @@ public class MainActivity extends AppCompatActivity {
             debugout("trying to connect " + mDevice.getAddress() + "\r\n" + msUUID);
             if (mDevice != null) {
                 if (mBLEscanCheckBox.isChecked()) {
-//                    mBleService = new BluetoothLeService();
-//                    mBleService.BluetoothGatt_connectGatt(mDevice, this, false);
-
-                    BluetoothSocket mSocket = null;
-                    try {
-                        mSocket = mDevice.createInsecureRfcommSocketToServiceRecord(UUID.fromString(msUUID));
-                    } catch (IOException e) {
-                        Log.e(TAG, "mSockets not created", e);
-                        e.printStackTrace();
-                        return;
-                    }
-
-//                    try {
-//                        mSocket.connect();
-//                    } catch (IOException connectException) {
-//                        debugout("Unable to connect, exception " + connectException.toString() + "\r\n" + "close the socket and return.");
-//                        try {
-//                            mSocket.close();
-//                        } catch (IOException closeException) {
-//                            Log.e(TAG, "Could not close the client socket", closeException);
-//                        }
-//                        return;
-//                    }
-
-                    InputStream tmpIn = null;
-                    OutputStream tmpOut = null;
-
-                    // Get the BluetoothSocket input and output streams
-                    try {
-                        tmpIn = mSocket.getInputStream();
-                        tmpOut = mSocket.getOutputStream();
-                    } catch (IOException e) {
-                        Log.e(TAG, "getting io streams failed", e);
-                        try {
-                            mSocket.close();
-                        } catch (IOException closeException) {
-                            Log.e(TAG, "Could not close the client socket", closeException);
-                        }
-                        e.printStackTrace();
-                        return;
-                    }
-
-                    if (tmpOut != null) {
-                        String text = "ringling ring";
-                        byte[] data = text.getBytes();
-                        tmpOut.write(data);
-                    }
-                    else {
-                        Log.e(TAG, "tnlOUt is null..... :-(");
-                    }
-
-                    try {
-                        mSocket.close();
-                    } catch (IOException closeException) {
-                        Log.e(TAG, "Could not close the client socket", closeException);
-                    }
-
+                    mBleService = new BluetoothLeService();
+                    mBleService.BluetoothGatt_connectGatt(mDevice, this, false);
                 }
                 else {
                     ConnectThread mConnect = new ConnectThread(mDevice);

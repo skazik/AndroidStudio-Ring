@@ -13,7 +13,7 @@ Java_com_example_ring_1sergie_testwith_1c_1ndk_MainActivity_getMsgFromJni(JNIEnv
     char path[BUF_LEN] = "!";
 
     /* Open the command for reading. */
-    fp = popen("ls /storage/3262-3238", "rt");
+    fp = popen("ls /storage/", "rt");
     if (fp == NULL) {
         sprintf(buf, "Failed to open file" );
     }
@@ -22,7 +22,7 @@ Java_com_example_ring_1sergie_testwith_1c_1ndk_MainActivity_getMsgFromJni(JNIEnv
         /* Read the output a line at a time - output it. */
         while (fgets(path, BUF_LEN, fp)) {
             if (offset + strlen(path) + 2 < BUF_LEN)
-                offset += sprintf(buf, "%s", path);
+                offset += sprintf(&buf[offset], "%s", path);
             else
                 break;
         }

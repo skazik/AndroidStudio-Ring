@@ -7,7 +7,7 @@ model {
 
         defaultConfig {
             applicationId "com.google.sample.helloandroidjni"
-            minSdkVersion.apiLevel 24
+            minSdkVersion.apiLevel 16
             targetSdkVersion.apiLevel 24
             versionCode 1
             versionName "1.0"
