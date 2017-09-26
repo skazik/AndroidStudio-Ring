@@ -1,6 +1,7 @@
 package com.example.ring_sergie.test1;
 
 import android.Manifest;
+import android.app.Notification;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -18,12 +19,14 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -43,7 +46,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-
 
 public class MainActivity extends AppCompatActivity {
 
@@ -71,6 +73,102 @@ public class MainActivity extends AppCompatActivity {
     List<String> mScanBTResultList;
     List<String> mScanLEResultList;
 
+    // Defines several constants used when transmitting messages between the
+    // service and the UI.
+
+    private interface MessageConstants {
+        public static final int MESSAGE_READ = 0;
+        public static final int MESSAGE_WRITE = 1;
+        public static final int MESSAGE_TOAST = 2;
+
+        // ... (Add other message types here as needed.)
+    }
+
+    private class MyBluetoothService {
+        private static final String TAG = "MY_APP_DEBUG_TAG";
+        private Handler mHandler; // handler that gets info from Bluetooth service
+
+        private class ConnectedThread extends Thread {
+            private final BluetoothSocket mmSocket;
+            private final InputStream mmInStream;
+            private final OutputStream mmOutStream;
+            private byte[] mmBuffer; // mmBuffer store for the stream
+
+            public ConnectedThread(BluetoothSocket socket) {
+                mmSocket = socket;
+                InputStream tmpIn = null;
+                OutputStream tmpOut = null;
+
+                // Get the input and output streams; using temp objects because
+                // member streams are final.
+                try {
+                    tmpIn = socket.getInputStream();
+                } catch (IOException e) {
+                    Log.e(TAG, "Error occurred when creating input stream", e);
+                }
+                try {
+                    tmpOut = socket.getOutputStream();
+                } catch (IOException e) {
+                    Log.e(TAG, "Error occurred when creating output stream", e);
+                }
+
+                mmInStream = tmpIn;
+                mmOutStream = tmpOut;
+            }
+
+//            public void run() {
+//                mmBuffer = new byte[1024];
+//                int numBytes; // bytes returned from read()
+//
+//                // Keep listening to the InputStream until an exception occurs.
+//                while (true) {
+//                    try {
+//                        // Read from the InputStream.
+//                        numBytes = mmInStream.read(mmBuffer);
+//
+//                        // Send the obtained bytes to the UI activity.
+//                        Notification.MessagingStyle.Message readMsg = mHandler.obtainMessage((int) MessageConstants.MESSAGE_READ, numBytes, -1,
+//                                mmBuffer);
+//                        readMsg.sendToTarget();
+//                    } catch (IOException e) {
+//                        Log.d(TAG, "Input stream was disconnected", e);
+//                        break;
+//                    }
+//                }
+//            }
+//
+//            // Call this from the main activity to send data to the remote device.
+//            public void write(byte[] bytes) {
+//                try {
+//                    mmOutStream.write(bytes);
+//
+//                    // Share the sent message with the UI activity.
+//                    Notification.MessagingStyle.Message writtenMsg = mHandler.obtainMessage(MessageConstants.MESSAGE_WRITE, -1, -1, mmBuffer);
+//                    writtenMsg.sendToTarget();
+//                } catch (IOException e) {
+//                    Log.e(TAG, "Error occurred when sending data", e);
+//
+//                    // Send a failure message back to the activity.
+//                    NotificationCompat.MessagingStyle.Message writeErrorMsg =
+//                            mHandler.obtainMessage(MessageConstants.MESSAGE_TOAST);
+//                    Bundle bundle = new Bundle();
+//                    bundle.putString("toast",
+//                            "Couldn't send data to the other device");
+//                    writeErrorMsg.setData(bundle);
+//                    mHandler.sendMessage(writeErrorMsg);
+//                }
+//            }
+
+            // Call this method from the main activity to shut down the connection.
+            public void cancel() {
+                try {
+                    mmSocket.close();
+                } catch (IOException e) {
+                    Log.e(TAG, "Could not close the connect socket", e);
+                }
+            }
+        }
+    }
     // this it standard BT connection class
     private class ConnectThread extends Thread {
         private static final String TAG = "skazik-socket";
@@ -164,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
         else
             mScanBTResultList.add(deviceHardwareAddress + "\r\n" + deviceName);
 
-        if (!bFound && deviceName.contains("Ampak"))
+        if (!bFound && (deviceName.contains("Ampak") || deviceName.contains("WL18")))
         {
             scan_discover(STOP_SCAN);
             bFound = true;
@@ -179,28 +277,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            debugout("mReceiver: " + action.toString());
-            switch (action)
-            {
-                case BluetoothAdapter.ACTION_STATE_CHANGED: debugout("ACTION_STATE_CHANGED"); break;
-                case BluetoothDevice.ACTION_FOUND: debugout("ACTION_FOUND"); break;
-                case BluetoothAdapter.ACTION_DISCOVERY_STARTED: debugout("ACTION_DISCOVERY_STARTED"); break;
-                case BluetoothAdapter.ACTION_DISCOVERY_FINISHED: debugout("ACTION_DISCOVERY_FINISHED"); break;
-            }
-
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                // Discovery has found a device. Get the BluetoothDevice
-                // object and its info from the Intent.
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                handleFound(device);            }
-        }
-    };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -413,7 +489,8 @@ public class MainActivity extends AppCompatActivity {
                     mBleService = new BluetoothLeService();
                     mBleService.BluetoothGatt_connectGatt(mDevice, this, false);
                 }
-                else {
+                else
+                {
                     ConnectThread mConnect = new ConnectThread(mDevice);
                     if (mConnect.mmSocket != null) {
                         mConnect.run();
@@ -438,49 +515,106 @@ public class MainActivity extends AppCompatActivity {
         if (gattServices == null) return;
         String uuid = null;
 
-        String unknownServiceString = getResources().
-                getString(R.string.unknown_service);
-        String unknownCharaString = getResources().
-                getString(R.string.unknown_characteristic);
+        String unknownServiceString = getResources().getString(R.string.unknown_service);
+        String unknownCharaString = getResources().getString(R.string.unknown_characteristic);
 
         ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
         ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData = new ArrayList<ArrayList<HashMap<String, String>>>();
         ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
 
+        debugout("Loops through available GATT Services.");
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
-            HashMap<String, String> currentServiceData =
-                    new HashMap<String, String>();
+            HashMap<String, String> currentServiceData = new HashMap<String, String>();
+
             uuid = gattService.getUuid().toString();
-            currentServiceData.put(
-                    LIST_NAME, SampleGattAttributes.
-                            lookup(uuid, unknownServiceString));
+            currentServiceData.put(LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
             currentServiceData.put(LIST_UUID, uuid);
             gattServiceData.add(currentServiceData);
 
-            ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
-                    new ArrayList<HashMap<String, String>>();
-            List<BluetoothGattCharacteristic> gattCharacteristics =
-                    gattService.getCharacteristics();
-            ArrayList<BluetoothGattCharacteristic> charas =
-                    new ArrayList<BluetoothGattCharacteristic>();
+            debugout("service: " + uuid);
+
+            ArrayList<HashMap<String, String>> gattCharacteristicGroupData = new ArrayList<HashMap<String, String>>();
+            List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
+            ArrayList<BluetoothGattCharacteristic> charas = new ArrayList<BluetoothGattCharacteristic>();
+
             // Loops through available Characteristics.
-            for (BluetoothGattCharacteristic gattCharacteristic :
-                    gattCharacteristics) {
+            for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
                 charas.add(gattCharacteristic);
-                HashMap<String, String> currentCharaData =
-                        new HashMap<String, String>();
+                HashMap<String, String> currentCharaData = new HashMap<String, String>();
                 uuid = gattCharacteristic.getUuid().toString();
-                currentCharaData.put(
-                        LIST_NAME, SampleGattAttributes.lookup(uuid,
-                                unknownCharaString));
+                currentCharaData.put( LIST_NAME, SampleGattAttributes.lookup(uuid, unknownCharaString));
                 currentCharaData.put(LIST_UUID, uuid);
                 gattCharacteristicGroupData.add(currentCharaData);
+
+                String wr = "";
+                if ((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+                    wr += "R";
+                }
+                if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
+                        (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
+                    debugout("- characteristics: " + uuid + " prop: " + gattCharacteristic.getProperties() + " " + wr);
+                    wr += "W";
+                    String str = "Hello WL18xx...hpcam2";
+                    byte[] strBytes = str.getBytes();
+                    byte[] bytes = gattCharacteristic.getValue();
+
+                    if (bytes == null) {
+                        debugout("Cannot get Values from mWriteCharacteristic.");
+                        bytes = new byte[4];
+                    }
+
+                    for(int i = 0; i < (bytes.length < strBytes.length ? bytes.length : strBytes.length); i++) {
+                        bytes[i] = strBytes[i];
+                    }
+                    gattCharacteristic.setValue(bytes);
+                    mBleService.BluetoothGatt_writeCharacteristic(gattCharacteristic);
+                    debugout("Sending hello " + bytes.length + " bytes");
+                }
+                else {
+                    debugout("- characteristics: " + uuid + " prop: " + gattCharacteristic.getProperties() + " " + wr);
+                }
             }
             mGattCharacteristics.add(charas);
             gattCharacteristicData.add(gattCharacteristicGroupData);
         }
+        can_disconnect_now();
     }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private void can_disconnect_now() {
+        if (mBleService != null ) {
+            debugout("Disconnecting");
+            mTextView.setText(mDevice.getName() + "\r\n" + mDevice.getAddress());
+            mBleService.BluetoothGatt_close();
+            mBleService = null;
+        }
+    }
+
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            debugout("mReceiver: " + action.toString());
+            switch (action)
+            {
+                case BluetoothAdapter.ACTION_STATE_CHANGED: debugout("ACTION_STATE_CHANGED"); break;
+                case BluetoothDevice.ACTION_FOUND: debugout("ACTION_FOUND"); break;
+                case BluetoothAdapter.ACTION_DISCOVERY_STARTED: debugout("ACTION_DISCOVERY_STARTED"); break;
+                case BluetoothAdapter.ACTION_DISCOVERY_FINISHED: debugout("ACTION_DISCOVERY_FINISHED"); break;
+                default:
+                    mGattUpdateReceiver.onReceive(context, intent);
+                    break;
+            }
+
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                // Discovery has found a device. Get the BluetoothDevice
+                // object and its info from the Intent.
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                handleFound(device);
+            }
+        }
+    };
 
     // Handles various events fired by the Service.
 // ACTION_GATT_CONNECTED: connected to a GATT server.
@@ -496,14 +630,13 @@ public class MainActivity extends AppCompatActivity {
             debugout("mGattUpdateReceiver: " + action.toString(), false);
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mBLEConnected = true;
-                updateConnectionState(R.string.connected);
                 invalidateOptionsMenu();
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mBLEConnected = false;
-                updateConnectionState(R.string.disconnected);
                 invalidateOptionsMenu();
                 // clearUI();
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
+                mTextView.setText("trying to send data....");
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(mBleService.BluetoothGatt_getServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
@@ -511,9 +644,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-
-    private void updateConnectionState(int connected) {
-        debugout(getResources().getString(connected).toString(), false);
-    }
 }
+
 

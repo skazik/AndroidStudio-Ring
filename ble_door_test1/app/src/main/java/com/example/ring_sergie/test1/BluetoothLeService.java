@@ -62,8 +62,7 @@ public class BluetoothLeService extends Service {
                         mConnectionState = STATE_CONNECTED;
                         broadcastUpdate(intentAction);
                         Log.i(TAG, "Connected to GATT server.");
-                        Log.i(TAG, "Attempting to start service discovery:" +
-                                mBluetoothGatt.discoverServices());
+                        Log.i(TAG, "Attempting to start service discovery:" + mBluetoothGatt.discoverServices());
 
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         intentAction = ACTION_GATT_DISCONNECTED;
@@ -161,5 +160,12 @@ public class BluetoothLeService extends Service {
     public List<BluetoothGattService> BluetoothGatt_getServices()
     {
         return mBluetoothGatt.getServices();
+    }
+
+    public void BluetoothGatt_writeCharacteristic(BluetoothGattCharacteristic characteristic)
+    {
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.writeCharacteristic(characteristic);
+        }
     }
 }
