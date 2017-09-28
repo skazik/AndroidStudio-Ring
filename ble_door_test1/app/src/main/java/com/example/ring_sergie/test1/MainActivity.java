@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
     HashMap<String, List<String>> listDataChild;
     List<String> mScanBTResultList;
     List<String> mScanLEResultList;
+    List<String> mCharacteristics;
 
     // Defines several constants used when transmitting messages between the
     // service and the UI.
@@ -257,10 +258,16 @@ public class MainActivity extends AppCompatActivity {
         text += deviceHardwareAddress;
         debugout(text);
 
-        if (mBLEscanCheckBox.isChecked())
-            mScanLEResultList.add(deviceHardwareAddress + "\r\n" + deviceName);
-        else
-            mScanBTResultList.add(deviceHardwareAddress + "\r\n" + deviceName);
+        if (device.getName() != null)
+        {
+            if (!bFound)
+                mTextView.setText(text);
+
+            if (mBLEscanCheckBox.isChecked())
+                mScanLEResultList.add(text);
+            else
+                mScanBTResultList.add(text);
+        }
 
         if (!bFound && (deviceName.contains("Ampak") || deviceName.contains("WL18")))
         {
@@ -356,6 +363,7 @@ public class MainActivity extends AppCompatActivity {
         // Adding child data
         listDataHeader.add("BT scan results");
         listDataHeader.add("Bluetooth LE scan");
+        listDataHeader.add("Results");
         listDataHeader.add("Help");
 
         // Adding child data
@@ -365,20 +373,21 @@ public class MainActivity extends AppCompatActivity {
         mScanLEResultList = new ArrayList<String>();
         mScanLEResultList.add("...");
 
-        List<String> comingSoon = new ArrayList<String>();
-        comingSoon.add("--up                    hciconfig hci0 up");
-        comingSoon.add("--down                  hciconfig hci0 down");
-        comingSoon.add("--piscan                hciconfig hci0 piscan");
-        comingSoon.add("--noscan                hciconfig hci0 noscan");
-        comingSoon.add("--leadv                 hciconfig hci0 leadv");
-        comingSoon.add("--noleadv               hciconfig hci0 leadv");
-        comingSoon.add("--class                 hciconfig hci0 class 0x280430");
-        comingSoon.add("--hciinit               up, piscan, class 0x280430, leadv");
-        comingSoon.add("--hcishutdown           noleadv, noscan, down");
+        mCharacteristics = new ArrayList<String>();
+        mCharacteristics.add("--up                    hciconfig hci0 up");
+        mCharacteristics.add("--down                  hciconfig hci0 down");
+        mCharacteristics.add("--piscan                hciconfig hci0 piscan");
+        mCharacteristics.add("--noscan                hciconfig hci0 noscan");
+        mCharacteristics.add("--leadv                 hciconfig hci0 leadv");
+        mCharacteristics.add("--noleadv               hciconfig hci0 leadv");
+        mCharacteristics.add("--class                 hciconfig hci0 class 0x280430");
+        mCharacteristics.add("--hciinit               up, piscan, class 0x280430, leadv");
+        mCharacteristics.add("--hcishutdown           noleadv, noscan, down");
 
         listDataChild.put(listDataHeader.get(0), mScanBTResultList); // Header, Child data
         listDataChild.put(listDataHeader.get(1), mScanLEResultList);
-        listDataChild.put(listDataHeader.get(2), comingSoon);
+        listDataChild.put(listDataHeader.get(2), mCharacteristics);
+        listDataChild.put(listDataHeader.get(3), mCharacteristics);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -522,6 +531,10 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData = new ArrayList<ArrayList<HashMap<String, String>>>();
         ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
 
+
+        mCharacteristics.clear();
+        listDataChild.put(listDataHeader.get(1), mScanLEResultList);
+
         debugout("Loops through available GATT Services.");
         // Loops through available GATT Services.
         for (BluetoothGattService gattService : gattServices) {
@@ -532,7 +545,7 @@ public class MainActivity extends AppCompatActivity {
             currentServiceData.put(LIST_UUID, uuid);
             gattServiceData.add(currentServiceData);
 
-            debugout("service: " + uuid);
+            debugout("service: " + uuid + " type " + gattService.getType());
 
             ArrayList<HashMap<String, String>> gattCharacteristicGroupData = new ArrayList<HashMap<String, String>>();
             List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
@@ -553,15 +566,22 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
                         (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
-                    debugout("- characteristics: " + uuid + " prop: " + gattCharacteristic.getProperties() + " " + wr);
                     wr += "W";
-                    String str = "Hello WL18xx...hpcam2";
+                }
+                String ch = "- charas: " + gattCharacteristic.toString() + " prop: " + gattCharacteristic.getProperties() + " " + wr;
+                mCharacteristics.add(ch);
+
+                if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
+                        (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
+                    debugout(ch);
+                    wr += "W";
+                    String str = "Hello WL18xx and hpcam2";
                     byte[] strBytes = str.getBytes();
                     byte[] bytes = gattCharacteristic.getValue();
 
                     if (bytes == null) {
                         debugout("Cannot get Values from mWriteCharacteristic.");
-                        bytes = new byte[4];
+                        bytes = new byte[str.length()];
                     }
 
                     for(int i = 0; i < (bytes.length < strBytes.length ? bytes.length : strBytes.length); i++) {
@@ -569,22 +589,25 @@ public class MainActivity extends AppCompatActivity {
                     }
                     gattCharacteristic.setValue(bytes);
                     mBleService.BluetoothGatt_writeCharacteristic(gattCharacteristic);
-                    debugout("Sending hello " + bytes.length + " bytes");
+                    debugout("Sending " + str + " " + bytes.length + " bytes", true);
                 }
                 else {
                     debugout("- characteristics: " + uuid + " prop: " + gattCharacteristic.getProperties() + " " + wr);
                 }
+
+                mBleService.BluetoothGatt_setNotify(gattCharacteristic);
             }
             mGattCharacteristics.add(charas);
             gattCharacteristicData.add(gattCharacteristicGroupData);
         }
+        listDataChild.put(listDataHeader.get(2), mCharacteristics);
         can_disconnect_now();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void can_disconnect_now() {
         if (mBleService != null ) {
-            debugout("Disconnecting");
+            debugout("--disconnected--");
             mTextView.setText(mDevice.getName() + "\r\n" + mDevice.getAddress());
             mBleService.BluetoothGatt_close();
             mBleService = null;
@@ -640,7 +663,7 @@ public class MainActivity extends AppCompatActivity {
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(mBleService.BluetoothGatt_getServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-                // displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                debugout(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
             }
         }
     };

@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -90,6 +91,13 @@ public class BluetoothLeService extends Service {
                         broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
                     }
                 }
+
+                @Override
+                // Characteristic notification
+                public void onCharacteristicChanged(BluetoothGatt gatt,
+                                                    BluetoothGattCharacteristic characteristic) {
+                    broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+                }
             };
 
     private void broadcastUpdate(final String action) {
@@ -168,4 +176,18 @@ public class BluetoothLeService extends Service {
             mBluetoothGatt.writeCharacteristic(characteristic);
         }
     }
+
+    public void BluetoothGatt_setNotify(BluetoothGattCharacteristic characteristic)
+    {
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.setCharacteristicNotification(characteristic, true);
+
+            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
+            if (descriptor != null) {
+                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                mBluetoothGatt.writeDescriptor(descriptor);
+            }
+        }
+    }
+
 }
