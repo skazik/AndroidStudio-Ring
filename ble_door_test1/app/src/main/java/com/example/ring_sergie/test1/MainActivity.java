@@ -601,11 +601,13 @@ public class MainActivity extends AppCompatActivity {
             gattCharacteristicData.add(gattCharacteristicGroupData);
         }
         listDataChild.put(listDataHeader.get(2), mCharacteristics);
-        can_disconnect_now();
+
+        // do not disconnect yet - it may sending packages still
+        // disconnectAndRelease();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    private void can_disconnect_now() {
+    private void disconnectAndRelease() {
         if (mBleService != null ) {
             debugout("--disconnected--");
             mTextView.setText(mDevice.getName() + "\r\n" + mDevice.getAddress());
