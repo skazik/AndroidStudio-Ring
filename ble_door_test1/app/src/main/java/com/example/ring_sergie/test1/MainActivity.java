@@ -269,8 +269,11 @@ public class MainActivity extends AppCompatActivity {
                 mScanBTResultList.add(text);
         }
 
-        if (!bFound && (deviceName.contains("Ampak") || deviceName.contains("WL18")))
+        if (!bFound && (deviceName.contains("Ampak")
+                || deviceName.contains("WL18")
+                || deviceHardwareAddress.contains("7E:00")))
         {
+
             scan_discover(STOP_SCAN);
             bFound = true;
             mDevice = device;
@@ -351,6 +354,17 @@ public class MainActivity extends AppCompatActivity {
 
         // setting list adapter
         expListView.setAdapter(listAdapter);
+        expListView.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+
+            @Override
+            public boolean onChildClick(
+                    ExpandableListView parent, View v,
+                    int groupPosition, int childPosition,
+                    long id) {
+                Toast.makeText(getBaseContext(), "click on " + groupPosition + " " + childPosition, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        });
     }
 
     /*
