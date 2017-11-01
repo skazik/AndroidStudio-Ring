@@ -14,6 +14,7 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -26,7 +27,7 @@ import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -70,8 +71,13 @@ public class MainActivity extends AppCompatActivity {
     ExpandableListView expListView;
     List<String> listDataHeader;
     HashMap<String, List<String>> listDataChild;
+
     List<String> mScanBTResultList;
+
     List<String> mScanLEResultList;
+    List <BluetoothDevice> mScanBLEDevices;
+    int mBLEDeviceIndex = 0;
+
     List<String> mCharacteristics;
 
     // Defines several constants used when transmitting messages between the
@@ -250,42 +256,42 @@ public class MainActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void handleFound(BluetoothDevice device)
     {
-        String deviceName = device.getName() != null ? device.getName() : "UNKNOWN";
-        String deviceHardwareAddress = device.getAddress(); // MAC address
+        if (!bFound) {
+            String deviceName = device.getName() != null ? device.getName() : "UNKNOWN";
+            String deviceHardwareAddress = device.getAddress(); // MAC address
 
-        String text = deviceName;
-        text += "\r\n";
-        text += deviceHardwareAddress;
-        debugout(text);
+            String text = deviceName;
+            text += "\r\nADDR:";
+            text += deviceHardwareAddress;
+            debugout(text);
 
-        if (device.getName() != null)
-        {
-            if (!bFound)
+            if (device.getName() != null) {
+                if (!bFound)
+                    mTextView.setText(text);
+
+                if (mBLEscanCheckBox.isChecked() && !mScanLEResultList.contains(text)) {
+                    mScanLEResultList.add(text);
+                    mScanBLEDevices.add(device);
+                }
+                else if (!mBLEscanCheckBox.isChecked() && !mScanBTResultList.contains(text))
+                    mScanBTResultList.add(text);
+            }
+
+            if (!bFound && (deviceName.contains("Ring-7E00"))) {
+                bFound = true;
+                mDevice = device;
+                mButton.setText("Connect");
                 mTextView.setText(text);
-
-            if (mBLEscanCheckBox.isChecked())
-                mScanLEResultList.add(text);
-            else
-                mScanBTResultList.add(text);
+            }
         }
 
-        if (!bFound && (deviceName.contains("Ampak")
-                || deviceName.contains("WL18")
-                || deviceHardwareAddress.contains("7E:00")))
-        {
-
+        if (bFound) {
             scan_discover(STOP_SCAN);
-            bFound = true;
-            mDevice = device;
-            mButton.setText("Connect");
-            mTextView.setText(text);
-
-            if (mBLEscanCheckBox.isChecked())
-                listDataChild.put(listDataHeader.get(1), mScanLEResultList);
-            else
-                listDataChild.put(listDataHeader.get(0), mScanBTResultList); // Header, Child data
+//            if (mBLEscanCheckBox.isChecked())
+//                listDataChild.put(listDataHeader.get(1), mScanLEResultList);
+//            else
+//                listDataChild.put(listDataHeader.get(0), mScanBTResultList); // Header, Child data
         }
-
     }
 
     @Override
@@ -361,7 +367,50 @@ public class MainActivity extends AppCompatActivity {
                     ExpandableListView parent, View v,
                     int groupPosition, int childPosition,
                     long id) {
-                Toast.makeText(getBaseContext(), "click on " + groupPosition + " " + childPosition, Toast.LENGTH_SHORT).show();
+                List<String> list = listDataChild.get(listDataHeader.get(groupPosition ));
+
+                String content = list.get(childPosition);
+                if (bScanInProgress)
+                {
+                    Toast.makeText(getBaseContext(), "Stop scan first...", Toast.LENGTH_SHORT).show();
+                }
+                else if (groupPosition != 1) // LE scan
+                {
+                    Toast.makeText(getBaseContext(), "currently for LE only... ", Toast.LENGTH_SHORT).show();
+                }
+                else if (content.contains("ADDR:"))
+                {
+                    content = content.substring(content.indexOf("ADDR:")+"ADDR:".length());
+                    if (content.contains("\n"))
+                        content = content.substring(0, content.indexOf('\n'));
+
+                    mBLEDeviceIndex = childPosition;
+                    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int choice) {
+                            switch (choice) {
+                                case DialogInterface.BUTTON_POSITIVE:
+
+                                    MainActivity.this.bFound = true;
+                                    mDevice = mScanBLEDevices.get(mBLEDeviceIndex);
+                                    mButton.setText("Connect");
+                                    mTextView.setText(mScanLEResultList.get(mBLEDeviceIndex));
+                                    break;
+
+                                case DialogInterface.BUTTON_NEGATIVE:
+                                    break;
+                            }
+                        }
+                    };
+
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    builder.setMessage("connect to " + content + "?")
+                            .setPositiveButton("Yes", dialogClickListener)
+                            .setNegativeButton("No", dialogClickListener).show();
+                }
+                else {
+                    Toast.makeText(getBaseContext(), "click on " + groupPosition + " " + childPosition + " " + list.get(childPosition), Toast.LENGTH_SHORT).show();
+                }
                 return false;
             }
         });
@@ -377,15 +426,16 @@ public class MainActivity extends AppCompatActivity {
         // Adding child data
         listDataHeader.add("BT scan results");
         listDataHeader.add("Bluetooth LE scan");
-        listDataHeader.add("Results");
-        listDataHeader.add("Help");
+        listDataHeader.add("Characteristics");
 
         // Adding child data
         mScanBTResultList = new ArrayList<String>();
-        mScanBTResultList.add("...");
+        mScanBTResultList.add("hpcam2 ADDR:38:D2:69:F2:7E:00");
+        mScanBTResultList.add("doorbe ADDR:43:34:1B:00:1F:AC");
 
+        mScanBLEDevices = new ArrayList<BluetoothDevice>();
         mScanLEResultList = new ArrayList<String>();
-        mScanLEResultList.add("...");
+        mScanLEResultList.add("ⓛⓞⓥⓔ");
 
         mCharacteristics = new ArrayList<String>();
         mCharacteristics.add("--up                    hciconfig hci0 up");
@@ -401,7 +451,6 @@ public class MainActivity extends AppCompatActivity {
         listDataChild.put(listDataHeader.get(0), mScanBTResultList); // Header, Child data
         listDataChild.put(listDataHeader.get(1), mScanLEResultList);
         listDataChild.put(listDataHeader.get(2), mCharacteristics);
-        listDataChild.put(listDataHeader.get(3), mCharacteristics);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -464,6 +513,7 @@ public class MainActivity extends AppCompatActivity {
             bScanInProgress = true;
             if (mBLEscanCheckBox.isChecked()) {
                 mScanLEResultList.clear();
+                mScanBLEDevices.clear();
                 mBluetoothAdapter.startLeScan(mLeScanCallback);
             }
             else {
@@ -555,6 +605,7 @@ public class MainActivity extends AppCompatActivity {
             HashMap<String, String> currentServiceData = new HashMap<String, String>();
 
             uuid = gattService.getUuid().toString();
+
             currentServiceData.put(LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
             currentServiceData.put(LIST_UUID, uuid);
             gattServiceData.add(currentServiceData);
@@ -567,29 +618,35 @@ public class MainActivity extends AppCompatActivity {
 
             // Loops through available Characteristics.
             for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+
                 charas.add(gattCharacteristic);
                 HashMap<String, String> currentCharaData = new HashMap<String, String>();
+
                 uuid = gattCharacteristic.getUuid().toString();
-                currentCharaData.put( LIST_NAME, SampleGattAttributes.lookup(uuid, unknownCharaString));
+                String uuid_human = SampleGattAttributes.lookup(uuid, unknownCharaString);
+
+                currentCharaData.put( LIST_NAME, uuid_human);
                 currentCharaData.put(LIST_UUID, uuid);
                 gattCharacteristicGroupData.add(currentCharaData);
 
                 String wr = "";
                 if ((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
-                    wr += "R";
+                    wr += "READ";
                 }
                 if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
                         (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
-                    wr += "W";
+                    wr += "WRITE";
                 }
-                String ch = "- charas: " + gattCharacteristic.toString() + " prop: " + gattCharacteristic.getProperties() + " " + wr;
+                debugout("characteristic: " + uuid_human + " " + uuid + " " + wr);
+                String ch = uuid_human + " " + uuid + " " + wr;
                 mCharacteristics.add(ch);
 
-                if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
-                        (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
-                    debugout(ch);
-                    wr += "W";
-                    String str = "Hello WL18xx and hpcam2";
+                if (uuid_human.contains("PEER_PUBLIC_KEY_WRITE")) {
+//                if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
+//                        (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
+                    debugout("write public key to PEER_PUBLIC_KEY_WRITE");
+
+                    String str = "writing public key to " + uuid_human;
                     byte[] strBytes = str.getBytes();
                     byte[] bytes = gattCharacteristic.getValue();
 
@@ -605,16 +662,13 @@ public class MainActivity extends AppCompatActivity {
                     mBleService.BluetoothGatt_writeCharacteristic(gattCharacteristic);
                     debugout("Sending " + str + " " + bytes.length + " bytes", true);
                 }
-                else {
-                    debugout("- characteristics: " + uuid + " prop: " + gattCharacteristic.getProperties() + " " + wr);
-                }
 
                 mBleService.BluetoothGatt_setNotify(gattCharacteristic);
             }
             mGattCharacteristics.add(charas);
             gattCharacteristicData.add(gattCharacteristicGroupData);
         }
-        listDataChild.put(listDataHeader.get(2), mCharacteristics);
+        // listDataChild.put(listDataHeader.get(2), mCharacteristics);
 
         // do not disconnect yet - it may sending packages still
         // disconnectAndRelease();
