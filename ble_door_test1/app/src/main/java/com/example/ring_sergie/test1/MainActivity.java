@@ -579,6 +579,31 @@ public class MainActivity extends AppCompatActivity {
     private static final String LIST_NAME = "NAME_LIST";
     private static final String LIST_UUID = "UUID_LIST";
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private void writeCharacteristicValue(String str, String charname, BluetoothGattCharacteristic gattCharacteristic)
+    {
+        // TODO: check it is writable
+        // if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
+        //        (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
+
+        debugout("writing " + str + " to " + charname);
+
+        byte[] strBytes = str.getBytes();
+        byte[] bytes = gattCharacteristic.getValue();
+
+        if (bytes == null) {
+            debugout("Cannot get Values from mWriteCharacteristic.");
+            bytes = new byte[str.length()];
+        }
+
+        for (int i = 0; i < (bytes.length < strBytes.length ? bytes.length : strBytes.length); i++) {
+            bytes[i] = strBytes[i];
+        }
+        gattCharacteristic.setValue(bytes);
+        mBleService.BluetoothGatt_writeCharacteristic(gattCharacteristic);
+        debugout("Sent " + str + " " + bytes.length + " bytes", true);
+    }
+
     // Demonstrates how to iterate through the supported GATT
     // Services/Characteristics.
     // In this sample, we populate the data structure that is bound to the
@@ -641,29 +666,16 @@ public class MainActivity extends AppCompatActivity {
                 String ch = uuid_human + " " + uuid + " " + wr;
                 mCharacteristics.add(ch);
 
-                if (uuid_human.contains("PEER_PUBLIC_KEY_WRITE")) {
-//                if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
-//                        (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
-                    debugout("write public key to PEER_PUBLIC_KEY_WRITE");
-
-                    String str = "writing public key to " + uuid_human;
-                    byte[] strBytes = str.getBytes();
-                    byte[] bytes = gattCharacteristic.getValue();
-
-                    if (bytes == null) {
-                        debugout("Cannot get Values from mWriteCharacteristic.");
-                        bytes = new byte[str.length()];
-                    }
-
-                    for(int i = 0; i < (bytes.length < strBytes.length ? bytes.length : strBytes.length); i++) {
-                        bytes[i] = strBytes[i];
-                    }
-                    gattCharacteristic.setValue(bytes);
-                    mBleService.BluetoothGatt_writeCharacteristic(gattCharacteristic);
-                    debugout("Sending " + str + " " + bytes.length + " bytes", true);
+                if (uuid_human.contains(SampleGattAttributes.PEER_PUBLIC_KEY_WRITE)) {
+                    writeCharacteristicValue("THIS IS PUBLIC KEY WRITE SAMPLE", SampleGattAttributes.PEER_PUBLIC_KEY_WRITE, gattCharacteristic);
                 }
+//                else if (uuid_human.contains(SampleGattAttributes.ZIPCODE_WRITE)) {
+//                    writeCharacteristicValue("91324", SampleGattAttributes.PEER_PUBLIC_KEY_WRITE, gattCharacteristic);
+//                }
 
+                // request for notifications
                 mBleService.BluetoothGatt_setNotify(gattCharacteristic);
+
             }
             mGattCharacteristics.add(charas);
             gattCharacteristicData.add(gattCharacteristicGroupData);

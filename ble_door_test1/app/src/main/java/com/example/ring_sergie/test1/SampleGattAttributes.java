@@ -10,6 +10,28 @@ public class SampleGattAttributes {
     public static String HEART_RATE_MEASUREMENT = "00002a37-0000-1000-8000-00805f9b34fb";
     public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
 
+    public static final String PEER_PUBLIC_KEY_WRITE = "PEER_PUBLIC_KEY_WRITE";
+    public static final String PUBLIC_PAYLOAD_READ = "PUBLIC_PAYLOAD_READ";
+    public static final String WIFI_LIST_READ = "WIFI_LIST_READ";
+    public static final String WIFI_SSID_WRITE = "WIFI_SSID_WRITE";
+    public static final String WIFI_PASS_WRITE = "WIFI_PASS_WRITE";
+    public static final String START_WIFI_PAIRING = "START_WIFI_PAIRING";
+    public static final String START_ETH_PAIRING = "START_ETH_PAIRING";
+    public static final String SERIAL_READ = "SERIAL_READ";
+    public static final String STATE_READ = "STATE_READ";
+    public static final String IFCONFIG_READ = "IFCONFIG_READ";
+    public static final String REGCODE_READ = "REGCODE_READ";
+    public static final String CONNECTIVITY_READ = "CONNECTIVITY_READ";
+    public static final String LAT_WRITE = "LAT_WRITE";
+    public static final String LNG_WRITE = "LNG_WRITE";
+    public static final String SAVE_LOC_INFO = "SAVE_LOC_INFO";
+    public static final String TZ_WRITE  = "TZ_WRITE ";
+    public static final String WIFI_SSID_READ = "WIFI_SSID_READ";
+    public static final String ZIPCODE_WRITE = "ZIPCODE_WRITE";
+    public static final String SECRET_CODE_WRITE = "SECRET_CODE_WRITE";
+    public static final String MAC_ADDRESS_READ = "MAC_ADDRESS_READ";
+    public static final String SETUP_ID_WRITE = "SETUP_ID_WRITE";
+
     static {
         // Sample Services.
         attributes.put("0000180d-0000-1000-8000-00805f9b34fb", "Heart Rate Service");
