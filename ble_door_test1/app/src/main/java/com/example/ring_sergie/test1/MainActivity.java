@@ -294,6 +294,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void readCharacteristicByUUID(String uuid)
+    {
+        BluetoothGattCharacteristic gattCharacteristic = getCharacteristic(uuid);
+        if (gattCharacteristic != null)
+        {
+            Log.d(TAG, "reading " + uuid + " waiting for read complete...");
+            mBleService.BluetoothGatt_readCharacteristic(gattCharacteristic);
+        }
+        else
+            Log.d(TAG, "gattCharacteristic " + uuid+ " not found... about.");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -374,9 +386,35 @@ public class MainActivity extends AppCompatActivity {
                 {
                     Toast.makeText(getBaseContext(), "Stop scan first...", Toast.LENGTH_SHORT).show();
                 }
-                else if (groupPosition != 1) // LE scan
+                else if (groupPosition != 1 && groupPosition != 2)
                 {
-                    Toast.makeText(getBaseContext(), "currently for LE only... ", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getBaseContext(), "this list is not implemented... ", Toast.LENGTH_SHORT).show();
+                }
+                else if (content.contains("UUID:")) // characteristics list
+                {
+                    content = content.substring(content.indexOf("UUID:")+"UUID:".length());
+                    if (content.contains("\n"))
+                        content = content.substring(0, content.indexOf('\n'));
+                    final String uuid = content;
+
+                    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int choice) {
+                            switch (choice) {
+                                case DialogInterface.BUTTON_POSITIVE:
+                                    readCharacteristicByUUID(uuid);
+                                    break;
+
+                                case DialogInterface.BUTTON_NEGATIVE:
+                                    break;
+                            }
+                        }
+                    };
+
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    builder.setMessage("READ " + content + "?")
+                            .setPositiveButton("Yes", dialogClickListener)
+                            .setNegativeButton("No", dialogClickListener).show();
                 }
                 else if (content.contains("ADDR:"))
                 {
@@ -390,7 +428,6 @@ public class MainActivity extends AppCompatActivity {
                         public void onClick(DialogInterface dialog, int choice) {
                             switch (choice) {
                                 case DialogInterface.BUTTON_POSITIVE:
-
                                     MainActivity.this.bFound = true;
                                     mDevice = mScanBLEDevices.get(mBLEDeviceIndex);
                                     mButton.setText("Connect");
@@ -435,18 +472,10 @@ public class MainActivity extends AppCompatActivity {
 
         mScanBLEDevices = new ArrayList<BluetoothDevice>();
         mScanLEResultList = new ArrayList<String>();
-        mScanLEResultList.add("ⓛⓞⓥⓔ");
+        mScanLEResultList.add("all you need is ⓛⓞⓥⓔ");
 
         mCharacteristics = new ArrayList<String>();
-        mCharacteristics.add("--up                    hciconfig hci0 up");
-        mCharacteristics.add("--down                  hciconfig hci0 down");
-        mCharacteristics.add("--piscan                hciconfig hci0 piscan");
-        mCharacteristics.add("--noscan                hciconfig hci0 noscan");
-        mCharacteristics.add("--leadv                 hciconfig hci0 leadv");
-        mCharacteristics.add("--noleadv               hciconfig hci0 leadv");
-        mCharacteristics.add("--class                 hciconfig hci0 class 0x280430");
-        mCharacteristics.add("--hciinit               up, piscan, class 0x280430, leadv");
-        mCharacteristics.add("--hcishutdown           noleadv, noscan, down");
+        mScanLEResultList.add("ⓛⓞⓥⓔ");
 
         listDataChild.put(listDataHeader.get(0), mScanBTResultList); // Header, Child data
         listDataChild.put(listDataHeader.get(1), mScanLEResultList);
@@ -663,11 +692,11 @@ public class MainActivity extends AppCompatActivity {
                     wr += "WRITE";
                 }
                 debugout("characteristic: " + uuid_human + " " + uuid + " " + wr);
-                String ch = uuid_human + " " + uuid + " " + wr;
+                String ch = uuid_human + " " + wr+ " UUID:" + uuid;
                 mCharacteristics.add(ch);
 
                 if (uuid_human.contains(SampleGattAttributes.PEER_PUBLIC_KEY_WRITE)) {
-                    writeCharacteristicValue("THIS IS PUBLIC KEY WRITE SAMPLE", SampleGattAttributes.PEER_PUBLIC_KEY_WRITE, gattCharacteristic);
+                    writeCharacteristicValue("THIS IS LONG CHARACTERISTIC AS PEER_PUBLIC_KEY", SampleGattAttributes.PEER_PUBLIC_KEY_WRITE, gattCharacteristic);
                 }
 //                else if (uuid_human.contains(SampleGattAttributes.ZIPCODE_WRITE)) {
 //                    writeCharacteristicValue("91324", SampleGattAttributes.PEER_PUBLIC_KEY_WRITE, gattCharacteristic);
@@ -721,6 +750,59 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private BluetoothGattCharacteristic getCharacteristic(String attr_uuid)
+    {
+        Log.d(TAG, "attr_uuid from Value = " + attr_uuid);
+        List<BluetoothGattService> gattServices = mBleService.BluetoothGatt_getServices();
+
+        for (BluetoothGattService gattService : gattServices) {
+            Log.d(TAG, "gattService: " + gattService.toString());
+            List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
+            for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
+                Log.d(TAG, "gattCharacteristic " + gattCharacteristic.getUuid() + " vs. " + attr_uuid);
+                if (gattCharacteristic.getUuid().toString().equals(attr_uuid)) {
+                    Log.d(TAG, "gattCharacteristic FOUND! " + gattCharacteristic.getUuid() + " == " + attr_uuid);
+                    return gattCharacteristic;
+                }
+            }
+        }
+        return null;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private BluetoothGattCharacteristic findCharacteristic(String name)
+    {
+        String attr_uuid = SampleGattAttributes.uuidByVal(name);
+        Log.d(TAG, "attr_uuid from Value = " + attr_uuid);
+        return getCharacteristic(attr_uuid);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private void HandleReadNotify(String aStr)
+    {
+        if (aStr == null)
+        {
+            Log.d(TAG, "null data read - abort.");
+            return;
+        }
+
+        debugout(aStr);
+        Log.d(TAG, "---------------------[" + aStr + "]------------------");
+        if (aStr.contains("PAYLOAD_READY")) {
+            Log.d(TAG, "PAYLOAD_READ: looking for char to read PUBLIC_PAYLOAD_READ");
+            BluetoothGattCharacteristic gattCharacteristic = findCharacteristic(SampleGattAttributes.PUBLIC_PAYLOAD_READ);
+            if (gattCharacteristic != null)
+            {
+                Log.d(TAG, "PAYLOAD_READ: foudd! reading the char - waiting for read complete...");
+                mBleService.BluetoothGatt_readCharacteristic(gattCharacteristic);
+            }
+            else
+                Log.d(TAG, "PAYLOAD_READ: gattCharacteristic not found... about.");
+
+        }
+    }
+
     // Handles various events fired by the Service.
 // ACTION_GATT_CONNECTED: connected to a GATT server.
 // ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
@@ -745,7 +827,7 @@ public class MainActivity extends AppCompatActivity {
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(mBleService.BluetoothGatt_getServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-                debugout(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                HandleReadNotify(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
             }
         }
     };

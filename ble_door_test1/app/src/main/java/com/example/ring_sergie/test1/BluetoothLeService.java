@@ -177,6 +177,13 @@ public class BluetoothLeService extends Service {
         }
     }
 
+    public void BluetoothGatt_readCharacteristic(BluetoothGattCharacteristic characteristic)
+    {
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.readCharacteristic(characteristic);
+        }
+    }
+
     public void BluetoothGatt_setNotify(BluetoothGattCharacteristic characteristic)
     {
         if (mBluetoothGatt != null) {

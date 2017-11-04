@@ -1,6 +1,7 @@
 package com.example.ring_sergie.test1;
 
 import java.util.HashMap;
+import java.util.Objects;
 
 /**
  * This class includes a small subset of standard GATT attributes for demonstration purposes.
@@ -61,11 +62,20 @@ public class SampleGattAttributes {
         attributes.put("9760d077-a234-4686-9e21-d087333c2d16" , "SECRET_CODE_WRITE");
         attributes.put("9760d077-a234-4686-9e21-d087333c2d17" , "MAC_ADDRESS_READ");
         attributes.put("9760d077-a234-4686-9e21-d087333c2d18" , "SETUP_ID_WRITE");
-
     }
 
     public static String lookup(String uuid, String defaultName) {
         String name = attributes.get(uuid);
         return name == null ? defaultName : name;
+    }
+
+
+    public static String uuidByVal(String val) {
+        for (HashMap.Entry<String, String> entry : attributes.entrySet()) {
+            if (entry.getValue().equals(val)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 }
