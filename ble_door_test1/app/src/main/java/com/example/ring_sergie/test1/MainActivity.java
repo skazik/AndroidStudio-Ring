@@ -277,7 +277,7 @@ public class MainActivity extends AppCompatActivity {
                     mScanBTResultList.add(text);
             }
 
-            if (!bFound && (deviceName.contains("Ring-7E00"))) {
+            if (!bFound && (deviceName.contains("Ring-7E01"))) {
                 bFound = true;
                 mDevice = device;
                 mButton.setText("Connect");
@@ -294,6 +294,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void readCharacteristicByUUID(String uuid)
     {
         BluetoothGattCharacteristic gattCharacteristic = getCharacteristic(uuid);
@@ -783,7 +784,7 @@ public class MainActivity extends AppCompatActivity {
     {
         if (aStr == null)
         {
-            Log.d(TAG, "null data read - abort.");
+            debugout("null data read - abort.");
             return;
         }
 
@@ -823,7 +824,7 @@ public class MainActivity extends AppCompatActivity {
                 invalidateOptionsMenu();
                 // clearUI();
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
-                mTextView.setText("trying to send data....");
+                debugout("trying to send data....");
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(mBleService.BluetoothGatt_getServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
