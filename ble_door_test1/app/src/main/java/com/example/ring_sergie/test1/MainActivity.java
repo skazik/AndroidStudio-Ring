@@ -696,8 +696,8 @@ public class MainActivity extends AppCompatActivity {
                 String ch = uuid_human + " " + wr+ " UUID:" + uuid;
                 mCharacteristics.add(ch);
 
-                if (uuid_human.contains(SampleGattAttributes.PEER_PUBLIC_KEY_WRITE)) {
-                    writeCharacteristicValue("THIS IS LONG CHARACTERISTIC AS PEER_PUBLIC_KEY", SampleGattAttributes.PEER_PUBLIC_KEY_WRITE, gattCharacteristic);
+                if (uuid_human.contains(SampleGattAttributes.SET_PUBLIC_KEY)) {
+                    writeCharacteristicValue("this IS long CHARACTERISTIC written to SET_PUBLIC_KEY", SampleGattAttributes.SET_PUBLIC_KEY, gattCharacteristic);
                 }
 //                else if (uuid_human.contains(SampleGattAttributes.ZIPCODE_WRITE)) {
 //                    writeCharacteristicValue("91324", SampleGattAttributes.PEER_PUBLIC_KEY_WRITE, gattCharacteristic);
@@ -792,7 +792,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "---------------------[" + aStr + "]------------------");
         if (aStr.contains("PAYLOAD_READY")) {
             Log.d(TAG, "PAYLOAD_READ: looking for char to read PUBLIC_PAYLOAD_READ");
-            BluetoothGattCharacteristic gattCharacteristic = findCharacteristic(SampleGattAttributes.PUBLIC_PAYLOAD_READ);
+            BluetoothGattCharacteristic gattCharacteristic = findCharacteristic(SampleGattAttributes.GET_PUBLIC_PAYLOAD);
             if (gattCharacteristic != null)
             {
                 Log.d(TAG, "PAYLOAD_READ: foudd! reading the char - waiting for read complete...");
