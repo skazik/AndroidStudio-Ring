@@ -132,13 +132,17 @@ public class BluetoothLeService extends Service {
         } else {
             // For all other profiles, writes the data formatted in HEX.
             final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for(byte byteChar : data)
-                    stringBuilder.append(String.format("%02X ", byteChar));
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n" +
-                        stringBuilder.toString());
-            }
+            final String Name = SampleGattAttributes.lookup(characteristic.getUuid().toString());
+            final StringBuilder stringBuilder = new StringBuilder();
+
+            Log.d(TAG, "broadcastUpdate name = " + Name);
+            if (Name != null)
+                stringBuilder.append("att:" + Name + "\n");
+            if (data != null && data.length > 0)
+                stringBuilder.append("val:" + new String(data) + "\n");
+//                for(byte byteChar : data)
+//                    stringBuilder.append((byteChar > ' ') && (byteChar < 0x7F)? byteChar : ".");
+            intent.putExtra(EXTRA_DATA, stringBuilder.toString());
         }
         if (mContext != null) mContext.sendBroadcast(intent);
     }

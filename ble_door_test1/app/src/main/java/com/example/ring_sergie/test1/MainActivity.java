@@ -304,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
             mBleService.BluetoothGatt_readCharacteristic(gattCharacteristic);
         }
         else
-            Log.d(TAG, "gattCharacteristic " + uuid+ " not found... about.");
+            Log.d(TAG, "gattCharacteristic " + uuid+ " not found... abort.");
     }
 
     @Override
@@ -399,6 +399,7 @@ public class MainActivity extends AppCompatActivity {
                     final String uuid = content;
 
                     DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
                         @Override
                         public void onClick(DialogInterface dialog, int choice) {
                             switch (choice) {
@@ -622,7 +623,7 @@ public class MainActivity extends AppCompatActivity {
         byte[] bytes = gattCharacteristic.getValue();
 
         if (bytes == null) {
-            debugout("Cannot get Values from mWriteCharacteristic.");
+            // debugout("Cannot get Values from mWriteCharacteristic.");
             bytes = new byte[str.length()];
         }
 
@@ -699,10 +700,6 @@ public class MainActivity extends AppCompatActivity {
                 if (uuid_human.contains(SampleGattAttributes.SET_PUBLIC_KEY)) {
                     writeCharacteristicValue("this IS long CHARACTERISTIC written to SET_PUBLIC_KEY", SampleGattAttributes.SET_PUBLIC_KEY, gattCharacteristic);
                 }
-//                else if (uuid_human.contains(SampleGattAttributes.ZIPCODE_WRITE)) {
-//                    writeCharacteristicValue("91324", SampleGattAttributes.PEER_PUBLIC_KEY_WRITE, gattCharacteristic);
-//                }
-
                 // request for notifications
                 mBleService.BluetoothGatt_setNotify(gattCharacteristic);
 
@@ -712,7 +709,7 @@ public class MainActivity extends AppCompatActivity {
         }
         // listDataChild.put(listDataHeader.get(2), mCharacteristics);
 
-        // do not disconnect yet - it may sending packages still
+        // don't disconnect yet - it may sending packages still
         // disconnectAndRelease();
     }
 
@@ -761,8 +758,8 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "gattService: " + gattService.toString());
             List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
             for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                Log.d(TAG, "gattCharacteristic " + gattCharacteristic.getUuid() + " vs. " + attr_uuid);
-                if (gattCharacteristic.getUuid().toString().equals(attr_uuid)) {
+                Log.d(TAG, "gattCharacteristic " + gattCharacteristic.getUuid().toString().toUpperCase() + " vs. " + attr_uuid.toUpperCase());
+                if (gattCharacteristic.getUuid().toString().toUpperCase().equals(attr_uuid.toUpperCase())) {
                     Log.d(TAG, "gattCharacteristic FOUND! " + gattCharacteristic.getUuid() + " == " + attr_uuid);
                     return gattCharacteristic;
                 }
@@ -775,8 +772,38 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothGattCharacteristic findCharacteristic(String name)
     {
         String attr_uuid = SampleGattAttributes.uuidByVal(name);
-        Log.d(TAG, "attr_uuid from Value = " + attr_uuid);
+        Log.d(TAG, "attr_uuid from Name [" + name + " = " + attr_uuid);
         return getCharacteristic(attr_uuid);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private boolean findAndWriteCharacteristic(String txt, String name, String val)
+    {
+        Log.d(TAG, txt + ": looking for gattCharacteristic...");
+        BluetoothGattCharacteristic gattCharacteristic = findCharacteristic(name);
+        if (gattCharacteristic != null) {
+            Log.d(TAG, name + ": found! sending write");
+            writeCharacteristicValue(val, name, gattCharacteristic);
+        }
+        else {
+            Log.d(TAG, name + ": gattCharacteristic not found... abort.");
+            return false;
+        }
+        return true;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private boolean findAndReadCharacteristic(String txt, String name) {
+        Log.d(TAG, txt + ": looking for gattCharacteristic to read");
+        BluetoothGattCharacteristic gattCharacteristic = findCharacteristic(name);
+        if (gattCharacteristic != null) {
+            Log.d(TAG, name + ": found! reading the char - waiting for read complete...");
+            mBleService.BluetoothGatt_readCharacteristic(gattCharacteristic);
+        } else {
+            Log.d(TAG, name + ": gattCharacteristic not found... abort.");
+            return false;
+        }
+        return true;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -788,19 +815,48 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        BluetoothGattCharacteristic gattCharacteristic;
         debugout(aStr);
         Log.d(TAG, "---------------------[" + aStr + "]------------------");
-        if (aStr.contains("PAYLOAD_READY")) {
-            Log.d(TAG, "PAYLOAD_READ: looking for char to read PUBLIC_PAYLOAD_READ");
-            BluetoothGattCharacteristic gattCharacteristic = findCharacteristic(SampleGattAttributes.GET_PUBLIC_PAYLOAD);
-            if (gattCharacteristic != null)
-            {
-                Log.d(TAG, "PAYLOAD_READ: foudd! reading the char - waiting for read complete...");
-                mBleService.BluetoothGatt_readCharacteristic(gattCharacteristic);
+        if (aStr.contains("att:GET_PAIRING_STATE")) {
+            if (aStr.contains("val:PAYLOAD_READY")) {
+                findAndReadCharacteristic("PAYLOAD_READ", SampleGattAttributes.GET_PUBLIC_PAYLOAD);
             }
-            else
-                Log.d(TAG, "PAYLOAD_READ: gattCharacteristic not found... about.");
+            else if (aStr.contains("val:WIFI_CONNECTED"))
+            {
+                Log.d(TAG, "WIFI_CONNECTED: WiFi Setup done!!");
+                Log.d(TAG, "WIFI_CONNECTED: setting other values!!");
+                findAndWriteCharacteristic("WIFI_CONNECTED", SampleGattAttributes.SET_ZIPCODE, "91234");
+                findAndWriteCharacteristic("WIFI_CONNECTED", SampleGattAttributes.SET_LANGUAGE, "ENG");
+            }
+            else if (aStr.contains("val:WIFI_CONNECT_FAILED"))
+            {
+                Log.d(TAG, "WIFI_CONNECT_FAILED: bad bad bad... abort and restart");
+                disconnectAndRelease();
+                mButton.setText("Re-x-Connect");
+            }
+        }
+        else if (aStr.contains("att:GET_PUBLIC_PAYLOAD")) {
+            Log.d(TAG, "got PUBLIC_PAYLOAD, ready for encrypted data echange");
 
+            // request for networks
+            findAndReadCharacteristic("GET_NETWORKS", SampleGattAttributes.GET_NETWORKS);
+        }
+        else if (aStr.contains("att:GET_NETWORKS")) {
+            Log.d(TAG, "on GET_NETWORKS, ready to present to UI");
+
+            boolean started = false;
+            // let's assume the SSID and PASSWORD selected
+            if (findAndWriteCharacteristic("on GET_NETWORKS", SampleGattAttributes.SET_SSID_WIFI, "Timbres"))
+                if (findAndWriteCharacteristic("on GET_NETWORKS", SampleGattAttributes.SET_PASSWORD, "Parola d'ordine"))
+                    if (findAndWriteCharacteristic("on GET_NETWORKS", SampleGattAttributes.SET_PAIRING_START, "Es ist Zeit!"))
+                        started = true;
+            if (!started)
+            {
+                debugout("oops.. something went wrong...abort and restart");
+                disconnectAndRelease();
+                mButton.setText("Re-x-Connect");
+            }
         }
     }
 

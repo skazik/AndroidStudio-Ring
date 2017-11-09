@@ -55,6 +55,11 @@ public class SampleGattAttributes {
     }
 
 
+    public static String lookup(String uuid) {
+        return attributes.get(uuid.toUpperCase());
+    }
+
+
     public static String uuidByVal(String val) {
         for (HashMap.Entry<String, String> entry : attributes.entrySet()) {
             if (entry.getValue().equals(val)) {
