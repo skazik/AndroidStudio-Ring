@@ -79,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
     int mBLEDeviceIndex = 0;
 
     List<String> mCharacteristics;
+    Boolean mbInteractiveReadOnce; // vs. batch-mode pairing simulation
 
     // Defines several constants used when transmitting messages between the
     // service and the UI.
@@ -314,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        mbInteractiveReadOnce = false;
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -404,6 +406,8 @@ public class MainActivity extends AppCompatActivity {
                         public void onClick(DialogInterface dialog, int choice) {
                             switch (choice) {
                                 case DialogInterface.BUTTON_POSITIVE:
+                                    // TODO: check properties W R - maybe to write vs. to read
+                                    mbInteractiveReadOnce = true;
                                     readCharacteristicByUUID(uuid);
                                     break;
 
@@ -818,7 +822,11 @@ public class MainActivity extends AppCompatActivity {
         BluetoothGattCharacteristic gattCharacteristic;
         debugout(aStr);
         Log.d(TAG, "---------------------[" + aStr + "]------------------");
-        if (aStr.contains("att:GET_PAIRING_STATE")) {
+
+        if (mbInteractiveReadOnce)
+            mbInteractiveReadOnce = false; // just display it
+
+        else if (aStr.contains("att:GET_PAIRING_STATE")) {
             if (aStr.contains("val:PAYLOAD_READY")) {
                 findAndReadCharacteristic("PAYLOAD_READ", SampleGattAttributes.GET_PUBLIC_PAYLOAD);
             }
