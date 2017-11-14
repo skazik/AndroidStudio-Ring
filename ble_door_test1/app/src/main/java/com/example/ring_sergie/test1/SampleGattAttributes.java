@@ -14,9 +14,7 @@ public class SampleGattAttributes {
     public static final String SET_PUBLIC_KEY = "SET_PUBLIC_KEY";
     public static final String GET_PUBLIC_PAYLOAD = "GET_PUBLIC_PAYLOAD";
     public static final String GET_NETWORKS = "GET_NETWORKS";
-    public static final String SET_SSID_WIFI = "SET_SSID_WIFI";
-    public static final String SET_PASSWORD = "SET_PASSWORD";
-    public static final String SET_PAIRING_START = "SET_PAIRING_START";
+    public static final String SET_NETWORK = "SET_NETWORK";
     public static final String GET_PAIRING_STATE = "GET_PAIRING_STATE";
     public static final String SET_LANGUAGE = "SET_LANGUAGE";
     public static final String SET_ZIPCODE = "SET_ZIPCODE";
@@ -37,9 +35,7 @@ public class SampleGattAttributes {
         attributes.put("0000FACE-0000-1000-8000-00805F9B3501", "SET_PUBLIC_KEY");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3502", "GET_PUBLIC_PAYLOAD");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3503", "GET_NETWORKS");
-        attributes.put("0000FACE-0000-1000-8000-00805F9B3504", "SET_SSID_WIFI");
-        attributes.put("0000FACE-0000-1000-8000-00805F9B3505", "SET_PASSWORD");
-        attributes.put("0000FACE-0000-1000-8000-00805F9B3506", "SET_PAIRING_START");
+        attributes.put("0000FACE-0000-1000-8000-00805F9B3504", "SET_NETWORK");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3507", "GET_PAIRING_STATE");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3508", "SET_LANGUAGE");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3509", "SET_ZIPCODE");
