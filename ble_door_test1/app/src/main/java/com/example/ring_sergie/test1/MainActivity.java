@@ -1,5 +1,6 @@
 package com.example.ring_sergie.test1;
 
+import android.text.method.ScrollingMovementMethod;
 import android.Manifest;
 import android.app.Notification;
 import android.app.Service;
@@ -57,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private static final boolean START_SCAN = true;
     private static final boolean STOP_SCAN = false;
     private Button mButton;
-    private TextView helloTextView;
+    private TextView scrollDisplay;
     private TextView mTextView;
     private CheckBox mBLEscanCheckBox;
     private BluetoothAdapter mBluetoothAdapter;
@@ -247,14 +248,15 @@ public class MainActivity extends AppCompatActivity {
     public void debugout(String text)
     {
         Log.d(TAG, text);
-        helloTextView.setText(text);
+        scrollDisplay.append(text + "\n");
     }
 
     public void debugout(String text, Boolean bLong)
     {
         Log.d(TAG, text);
-        helloTextView.setText(text);
-        Toast.makeText(getBaseContext(), text, bLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
+        scrollDisplay.append(text + "\n");
+//        scrollDisplay.setText(text);
+//        Toast.makeText(getBaseContext(), text, bLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -328,7 +330,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         mButton = (Button) findViewById(R.id.button1);
-        helloTextView = (TextView) findViewById(R.id.text_view_id);
+
+        scrollDisplay = (TextView) findViewById(R.id.text_view_id);
+        scrollDisplay.setMovementMethod(ScrollingMovementMethod.getInstance());
+        scrollDisplay.setSelected(true);
+        scrollDisplay.append("ready to start?..\n");
+
         mTextView =  (TextView) findViewById(R.id.textView1);
         mBLEscanCheckBox = (CheckBox) findViewById(R.id.checkBox1);
         mBLEscanCheckBox.setChecked(true);
