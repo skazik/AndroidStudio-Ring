@@ -14,7 +14,9 @@ public class SampleGattAttributes {
     public static final String SET_PUBLIC_KEY = "SET_PUBLIC_KEY";
     public static final String GET_PUBLIC_PAYLOAD = "GET_PUBLIC_PAYLOAD";
     public static final String GET_NETWORKS = "GET_NETWORKS";
-    public static final String SET_NETWORK = "SET_NETWORK";
+    public static final String SET_WIFI_NETWORK = "SET_WIFI_NETWORK";
+    public static final String SET_SECRET_KEY = "SET_SECRET_KEY";
+    public static final String SET_COUNTRY_CODE = "SET_COUNTRY_CODE";
     public static final String GET_PAIRING_STATE = "GET_PAIRING_STATE";
     public static final String SET_LANGUAGE = "SET_LANGUAGE";
     public static final String SET_ZIPCODE = "SET_ZIPCODE";
@@ -22,6 +24,7 @@ public class SampleGattAttributes {
     public static final String GET_SSID_WIFI = "GET_SSID_WIFI";
     public static final String GET_SERIAL_NUMBER = "GET_SERIAL_NUMBER";
     public static final String GET_MAC_ADDRESS = "GET_MAC_ADDRESS";
+    public static final String SET_ETHERNET = "SET_ETHERNET";
 
     static {
         // Sample Services.
@@ -35,7 +38,9 @@ public class SampleGattAttributes {
         attributes.put("0000FACE-0000-1000-8000-00805F9B3501", "SET_PUBLIC_KEY");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3502", "GET_PUBLIC_PAYLOAD");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3503", "GET_NETWORKS");
-        attributes.put("0000FACE-0000-1000-8000-00805F9B3504", "SET_NETWORK");
+        attributes.put("0000FACE-0000-1000-8000-00805F9B3504", "SET_WIFI_NETWORK");
+        attributes.put("0000FACE-0000-1000-8000-00805F9B3505", "SET_SECRET_KEY");
+        attributes.put("0000FACE-0000-1000-8000-00805F9B3506", "SET_COUNTRY_CODE");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3507", "GET_PAIRING_STATE");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3508", "SET_LANGUAGE");
         attributes.put("0000FACE-0000-1000-8000-00805F9B3509", "SET_ZIPCODE");
@@ -43,6 +48,7 @@ public class SampleGattAttributes {
         attributes.put("0000FACE-0000-1000-8000-00805F9B350B", "GET_SSID_WIFI");
         attributes.put("0000FACE-0000-1000-8000-00805F9B350C", "GET_SERIAL_NUMBER");
         attributes.put("0000FACE-0000-1000-8000-00805F9B350D", "GET_MAC_ADDRESS");
+        attributes.put("0000FACE-0000-1000-8000-00805F9B350E", "SET_ETHERNET");
     }
 
     public static String lookup(String uuid, String defaultName) {

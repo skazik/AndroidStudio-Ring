@@ -863,6 +863,11 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "WIFI_CONNECTED: WiFi Setup done!!");
                 Log.d(TAG, "WIFI_CONNECTED: setting other values!!");
                 findAndWriteCharacteristic("WIFI_CONNECTED", SampleGattAttributes.SET_ZIPCODE, "91234");
+                try {
+                    wait(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 findAndWriteCharacteristic("WIFI_CONNECTED", SampleGattAttributes.SET_LANGUAGE, "ENG");
             }
             else if (aStr.contains("val:WIFI_CONNECT_FAILED"))
@@ -886,7 +891,7 @@ public class MainActivity extends AppCompatActivity {
             String network_credentials = NetworktoJSON("Doorbells", "Parola d'ordine");
             debugout("sending " + network_credentials);
 
-            if (!findAndWriteCharacteristic("on GET_NETWORKS", SampleGattAttributes.SET_NETWORK, network_credentials))
+            if (!findAndWriteCharacteristic("on GET_NETWORKS", SampleGattAttributes.SET_WIFI_NETWORK, network_credentials))
             {
                 debugout("oops.. something went wrong...abort and restart");
                 disconnectAndRelease();
