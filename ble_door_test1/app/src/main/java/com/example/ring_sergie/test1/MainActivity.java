@@ -851,9 +851,27 @@ public class MainActivity extends AppCompatActivity {
         debugout(aStr);
         Log.d(TAG, "---------------------[" + aStr + "]------------------");
 
-        if (mbInteractiveReadOnce)
+        if (mbInteractiveReadOnce) {
             mbInteractiveReadOnce = false; // just display it
-
+        }
+        else if (aStr.contains("att:GET_MAC_ADDRESS")) {
+            findAndReadCharacteristic("GET SERIAL", SampleGattAttributes.GET_SERIAL_NUMBER);
+        }
+        else if (aStr.contains("att:GET_SERIAL_NUMBER")) {
+            findAndWriteCharacteristic("ZIP", SampleGattAttributes.SET_ZIPCODE, "91234");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            findAndWriteCharacteristic("ENG", SampleGattAttributes.SET_LANGUAGE, "ENG");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            findAndWriteCharacteristic("US", SampleGattAttributes.SET_COUNTRY_CODE, "US/GB");
+        }
         else if (aStr.contains("att:GET_PAIRING_STATE")) {
             if (aStr.contains("val:PAYLOAD_READY")) {
                 findAndReadCharacteristic("PAYLOAD_READ", SampleGattAttributes.GET_PUBLIC_PAYLOAD);
@@ -862,13 +880,7 @@ public class MainActivity extends AppCompatActivity {
             {
                 Log.d(TAG, "WIFI_CONNECTED: WiFi Setup done!!");
                 Log.d(TAG, "WIFI_CONNECTED: setting other values!!");
-                findAndWriteCharacteristic("WIFI_CONNECTED", SampleGattAttributes.SET_ZIPCODE, "91234");
-                try {
-                    wait(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                findAndWriteCharacteristic("WIFI_CONNECTED", SampleGattAttributes.SET_LANGUAGE, "ENG");
+                findAndReadCharacteristic("GET MAC", SampleGattAttributes.GET_MAC_ADDRESS);
             }
             else if (aStr.contains("val:WIFI_CONNECT_FAILED"))
             {
