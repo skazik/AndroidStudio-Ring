@@ -1,6 +1,12 @@
 package com.example.ring_sergie.test1;
 
+import android.app.Activity;
 import android.app.Application;
+import android.companion.AssociationRequest;
+import android.companion.BluetoothDeviceFilter;
+import android.companion.CompanionDeviceManager;
+import android.content.IntentSender;
+import android.os.ParcelUuid;
 import android.text.method.ScrollingMovementMethod;
 import android.Manifest;
 import android.app.Notification;
@@ -57,9 +63,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
+
 
 public class MainActivity extends AppCompatActivity {
 
+    private CompanionDeviceManager mDeviceManager;
+    private AssociationRequest mPairingRequest;
+    private BluetoothDeviceFilter mDeviceFilter;
+    private static final int SELECT_DEVICE_REQUEST_CODE = 42;
     private static final String TAG = "sergei.ka";
     private static final boolean START_SCAN = true;
     private static final boolean STOP_SCAN = false;
@@ -250,6 +262,78 @@ public class MainActivity extends AppCompatActivity {
     }
     // end of Thread Connection (BT) class
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public void CompanionDevicePairing() {
+
+        Log.d(TAG, "Build.VERSION.SDK_INT: " + Build.VERSION.SDK_INT);
+        Log.d(TAG, " Build.VERSION_CODES.O: " +  Build.VERSION_CODES.O);
+        Log.d(TAG, "(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ");
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Log.d(TAG, "getting system service for mDeviceManager");
+            mDeviceManager = getSystemService(CompanionDeviceManager.class);
+        }
+        // To skip filtering based on name and supported feature flags (UUIDs),
+        // don't include calls to setNamePattern() and addServiceUuid(),
+        // respectively. This example uses Bluetooth.
+        BluetoothDeviceFilter.Builder builder = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Log.d(TAG,"making builder for koko");
+            builder = new BluetoothDeviceFilter.Builder();
+            builder.setNamePattern(Pattern.compile("koko"));
+            builder.build();
+        }
+
+        // The argument provided in setSingleDevice() determines whether a single
+        // device name or a list of device names is presented to the user as
+        // pairing options.
+        if ((builder != null) && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)) {
+            Log.d(TAG, "requesting assotiation with builder");
+            mPairingRequest = new AssociationRequest.Builder()
+                    .addDeviceFilter(mDeviceFilter)
+                    .setSingleDevice(true)
+                    .build();
+        }
+
+        // When the app tries to pair with the Bluetooth device, show the
+        // appropriate pairing request dialog to the user.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Log.d(TAG, "assotiating ...");
+
+            mDeviceManager.associate(mPairingRequest,
+                    new CompanionDeviceManager.Callback() {
+                        @Override
+                        public void onDeviceFound(IntentSender chooserLauncher) {
+                            try {
+                                startIntentSenderForResult(chooserLauncher,
+                                        SELECT_DEVICE_REQUEST_CODE, null, 0, 0, 0);
+                            } catch (IntentSender.SendIntentException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(CharSequence charSequence) {
+
+                        }
+                    },
+                    null);
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == SELECT_DEVICE_REQUEST_CODE &&
+                resultCode == Activity.RESULT_OK) {
+            // User has chosen to pair with the Bluetooth device.
+            BluetoothDevice deviceToPair =
+                    data.getParcelableExtra(CompanionDeviceManager.EXTRA_DEVICE);
+            deviceToPair.createBond();
+
+            // ... Continue interacting with the paired device.
+        }
+    }
 
     public void debugout(String text)
     {
@@ -338,9 +422,10 @@ public class MainActivity extends AppCompatActivity {
         mbInteractiveReadOnce = false;
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.M)
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Getting conn. & paired devs", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "Getting conn.&.paired devs", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
 
                 List<BluetoothDevice> btdevices = getConnectedDevices();
@@ -366,13 +451,16 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { // Android 8 SDK 26
+                    CompanionDevicePairing();
+                }
 
             }
         });
 
-        SimpleDateFormat df = new SimpleDateFormat("MM-dd-yy HH:mm:ss");
+        SimpleDateFormat df = new SimpleDateFormat("(MM-dd HH:mm)");
         String formattedDate = df.format(Calendar.getInstance().getTime());
-        String new_title = (String) getTitle() + " " + formattedDate;
+        String new_title = /*(String) getTitle()*/ "Ring BLEst1 " + formattedDate;
         setTitle(new_title);
 
         mButton = (Button) findViewById(R.id.button1);
