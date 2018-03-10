@@ -18,6 +18,7 @@ import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,7 +64,7 @@ public class BluetoothLeService extends Service {
                         mConnectionState = STATE_CONNECTED;
                         broadcastUpdate(intentAction);
                         Log.i(TAG, "Connected to GATT server.");
-                        Log.i(TAG, "Attempting to start service discovery:" + mBluetoothGatt.discoverServices());
+                        // Log.i(TAG, "Attempting to start service discovery:" + mBluetoothGatt.discoverServices());
 
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         intentAction = ACTION_GATT_DISCONNECTED;
@@ -153,6 +154,23 @@ public class BluetoothLeService extends Service {
         return null;
     }
 
+    public boolean BluetoothGatt_discoverServices() {
+        // refreshDeviceCache(mBluetoothGatt);
+//        try {
+//            Method localMethod = mBluetoothGatt.getClass().getMethod("refresh", new Class[0]);
+//            if (localMethod != null) {
+//                Log.d(TAG, "...refreshing device");
+//                localMethod.invoke(mBluetoothGatt, new Object[0]);
+//            }
+//            else
+//                Log.e(TAG, "---Failed to refresh device");
+//        }
+//        catch (Exception localException) {
+//            Log.e(TAG, "An exception occured while refreshing device");
+//        }
+
+        return mBluetoothGatt.discoverServices();
+    }
 
     // additional heler functions
     public void BluetoothGatt_close() {
@@ -163,10 +181,12 @@ public class BluetoothLeService extends Service {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     public void BluetoothGatt_connectGatt(BluetoothDevice device, Context ctx, boolean autoconnect)
     {
+        final int TRANSPORT_LE = 2;
         mContext = ctx;
-        mBluetoothGatt = device.connectGatt(mContext, autoconnect, mGattCallback);
+        mBluetoothGatt = device.connectGatt(mContext, autoconnect, mGattCallback); // , TRANSPORT_LE);
     }
 
     public List<BluetoothGattService> BluetoothGatt_getServices()
