@@ -2,6 +2,10 @@ package com.example.ring_sergie.test1;
 
 import android.app.Activity;
 import android.app.Application;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.companion.AssociationRequest;
 import android.companion.BluetoothDeviceFilter;
 import android.companion.CompanionDeviceManager;
@@ -55,8 +59,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -350,7 +357,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-    private void handleFound(BluetoothDevice device)
+    private void handleFound(BluetoothDevice device, String strUUID)
     {
         if (!bFound) {
             String deviceName = device.getName() != null ? device.getName() : "UNKNOWN";
@@ -359,6 +366,10 @@ public class MainActivity extends AppCompatActivity {
             String text = deviceName;
             text += "\r\nADDR:";
             text += deviceHardwareAddress;
+            if (!strUUID.isEmpty()) {
+                text += "\r\nUUID:" + strUUID;
+            }
+
             debugout(text);
 
             if (device.getName() != null) {
@@ -665,21 +676,108 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private String parseAdvertisementPacket(final byte[] scanRecord) {
+
+        byte[] advertisedData = Arrays.copyOf(scanRecord, scanRecord.length);
+
+        int offset = 0;
+        while (offset < (advertisedData.length - 2)) {
+            int len = advertisedData[offset++];
+            if (len == 0)
+                break;
+
+            int type = advertisedData[offset++];
+            switch (type) {
+                case 0x02: // Partial list of 16-bit UUIDs
+                case 0x03: // Complete list of 16-bit UUIDs
+                    while (len > 1) {
+                        int uuid16 = advertisedData[offset++] & 0xFF;
+                        uuid16 |= (advertisedData[offset++] << 8);
+                        len -= 2;
+                        Log.d(TAG, "UUID:" + UUID.fromString(String.format("%08x-0000-1000-8000-00805f9b34fb", uuid16)));
+                    }
+                    break;
+                case 0x06:// Partial list of 128-bit UUIDs
+                case 0x07:// Complete list of 128-bit UUIDs
+                    // Loop through the advertised 128-bit UUID's.
+                    while (len >= 16) {
+                        try {
+                            // Wrap the advertised bits and order them.
+                            ByteBuffer buffer = ByteBuffer.wrap(advertisedData, offset++, 16).order(ByteOrder.LITTLE_ENDIAN);
+                            long mostSignificantBit = buffer.getLong();
+                            long leastSignificantBit = buffer.getLong();
+                            String sret = new UUID(leastSignificantBit, mostSignificantBit).toString();
+                            Log.d(TAG, "UUID:" + sret);
+                            return sret;
+
+                        } catch (IndexOutOfBoundsException e) {
+                            // Defensive programming.
+                            Log.e(TAG, "BlueToothDeviceFilter.parseUUID");
+                            continue;
+                        } finally {
+                            // Move the offset to read the next uuid.
+                            offset += 15;
+                            len -= 16;
+                        }
+                    }
+                    break;
+                case 0xFF:  // Manufacturer Specific Data
+                    char MfgData[] = new char[32];
+                    int i=0;
+                    Log.d(TAG, "Manufacturer Specific Data size:" + len + " bytes");
+                    while (len > 1) {
+                        if (i < 32) {
+                            MfgData[i++] = (char) advertisedData[offset++];
+                        }
+                        len -= 1;
+                    }
+                    Log.d(TAG, "Manufacturer Specific Data saved." + MfgData.toString());
+                    break;
+                default:
+                    offset += (len - 1);
+                    break;
+            }
+        }
+        return new String("");
+    }
+
+    public ScanCallback mLeScanFilteredCb = new ScanCallback() {
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            super.onScanResult(callbackType, result);
+            handleFound(result.getDevice(), "");
+        }
+    };
     // Device scan callback.
     private BluetoothAdapter.LeScanCallback mLeScanCallback =
             new BluetoothAdapter.LeScanCallback() {
                 @Override
                 public void onLeScan(final BluetoothDevice device, int rssi,
-                                     byte[] scanRecord) {
+                                     final byte[] scanRecord) {
                     runOnUiThread(new Runnable() {
                         @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
                         @Override
                         public void run() {
-                            handleFound(device);
+                            handleFound(device, parseAdvertisementPacket(scanRecord));
                         }
                     });
                 }
             };
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public void startLeScanNow()
+    {
+        List<ScanFilter> filters = new ArrayList<>();
+        // filters.add(new ScanFilter.Builder().setDeviceName("RingSetup-").build());
+        UUID uuidChime = UUID.fromString("0000face-0000-1000-8000-00805f9b34fb");
+        ScanFilter chimeUuidFilter = new ScanFilter.Builder().setServiceUuid(new ParcelUuid(uuidChime)).build();
+        filters.add(chimeUuidFilter);
+
+        ScanSettings.Builder builderScanSettings = new ScanSettings.Builder();
+        builderScanSettings.setScanMode(ScanSettings.CALLBACK_TYPE_ALL_MATCHES);
+        mBluetoothAdapter.getBluetoothLeScanner().startScan(filters, builderScanSettings.build(), mLeScanFilteredCb);
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     public void scan_discover(boolean bStart)
@@ -690,7 +788,12 @@ public class MainActivity extends AppCompatActivity {
             if (mBLEscanCheckBox.isChecked()) {
                 mScanLEResultList.clear();
                 mScanBLEDevices.clear();
-                mBluetoothAdapter.startLeScan(mLeScanCallback);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    startLeScanNow();
+                }
+                else {
+                    mBluetoothAdapter.startLeScan(mLeScanCallback);
+                }
             }
             else {
                 mScanBTResultList.clear();
@@ -897,7 +1000,7 @@ public class MainActivity extends AppCompatActivity {
                 // Discovery has found a device. Get the BluetoothDevice
                 // object and its info from the Intent.
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                handleFound(device);
+                handleFound(device, "");
             }
         }
     };

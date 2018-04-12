@@ -186,7 +186,7 @@ public class BluetoothLeService extends Service {
     {
         final int TRANSPORT_LE = 2;
         mContext = ctx;
-        mBluetoothGatt = device.connectGatt(mContext, autoconnect, mGattCallback); // , TRANSPORT_LE);
+        mBluetoothGatt = device.connectGatt(mContext, autoconnect, mGattCallback, TRANSPORT_LE);
     }
 
     public List<BluetoothGattService> BluetoothGatt_getServices()
