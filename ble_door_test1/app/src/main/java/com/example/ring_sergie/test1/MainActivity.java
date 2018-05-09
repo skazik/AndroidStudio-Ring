@@ -893,6 +893,29 @@ public class MainActivity extends AppCompatActivity {
         debugout("Sent " + str + " " + bytes.length + " bytes", true);
     }
 
+    private void writeCharacteristicValue(byte[] strBytes, String charname, BluetoothGattCharacteristic gattCharacteristic)
+    {
+        // TODO: check it is writable
+        // if (((gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE) |
+        //        (gattCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE)) > 0) {
+
+        debugout("writing BINARY to " + charname);
+
+        byte[] bytes = gattCharacteristic.getValue();
+
+        if (bytes == null) {
+            // debugout("Cannot get Values from mWriteCharacteristic.");
+            bytes = new byte[strBytes.length];
+        }
+
+        for (int i = 0; i < (bytes.length < strBytes.length ? bytes.length : strBytes.length); i++) {
+            bytes[i] = strBytes[i];
+        }
+        gattCharacteristic.setValue(bytes);
+        mBleService.BluetoothGatt_writeCharacteristic(gattCharacteristic);
+        debugout("Sent BINARY " + bytes.length + " bytes", true);
+    }
+
     // Demonstrates how to iterate through the supported GATT
     // Services/Characteristics.
     // In this sample, we populate the data structure that is bound to the
@@ -958,18 +981,33 @@ public class MainActivity extends AppCompatActivity {
 
                 if (!unknownCharaString.equals(uuid_human)) {
                     // request for notifications
-                    mBleService.BluetoothGatt_setNotify(gattCharacteristic);
+                    if (uuid_human.contains(SampleGattAttributes.GET_PUBLIC_PAYLOAD)) {
+                        mBleService.BluetoothGatt_setNotify(gattCharacteristic);
+                    }
+                    else if (uuid_human.contains(SampleGattAttributes.GET_PAIRING_STATE)) {
+                        mBleService.BluetoothGatt_setNotify(gattCharacteristic);
+                    }
                 }
 
                 if (uuid_human.contains(SampleGattAttributes.SET_PUBLIC_KEY)) {
-                    writeCharacteristicValue("this IS long CHARACTERISTIC written to SET_PUBLIC_KEY", SampleGattAttributes.SET_PUBLIC_KEY, gattCharacteristic);
+                    //writeCharacteristicValue("this IS long CHARACTERISTIC written to SET_PUBLIC_KEY", SampleGattAttributes.SET_PUBLIC_KEY, gattCharacteristic);
+                    byte[] strBytes = hexStringToByteArray("EECB38776FDD076A86BF57C6E42FCB1B878BE2E84187C9A9E3433BCF8185045B");
+                    writeCharacteristicValue(strBytes, SampleGattAttributes.SET_PUBLIC_KEY, gattCharacteristic);
                 }
             }
             mGattCharacteristics.add(charas);
             gattCharacteristicData.add(gattCharacteristicGroupData);
         }
     }
-
+    public static byte[] hexStringToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
     private void disconnectAndRelease() {
         if (mBleService != null ) {

@@ -139,10 +139,14 @@ public class BluetoothLeService extends Service {
             Log.d(TAG, "broadcastUpdate name = " + Name);
             if (Name != null)
                 stringBuilder.append("att:" + Name + "\n");
-            if (data != null && data.length > 0)
-                stringBuilder.append("val:" + new String(data) + "\n");
-//                for(byte byteChar : data)
-//                    stringBuilder.append((byteChar > ' ') && (byteChar < 0x7F)? byteChar : ".");
+            if (data != null && data.length > 0) {
+                Log.d(TAG, "data len = " + data.length);
+                // stringBuilder.append("val:" + new String(data) + "\n");
+                for(byte byteChar : data) {
+                    // stringBuilder.append((byteChar > ' ') && (byteChar < 0x7F) ? byteChar : ".");
+                    stringBuilder.append(String.format("%02X ", byteChar));
+                }
+            }
             intent.putExtra(EXTRA_DATA, stringBuilder.toString());
         }
         if (mContext != null) mContext.sendBroadcast(intent);
@@ -208,9 +212,11 @@ public class BluetoothLeService extends Service {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void BluetoothGatt_setNotify(BluetoothGattCharacteristic characteristic)
     {
         if (mBluetoothGatt != null) {
+            mBluetoothGatt.requestMtu(512);
             mBluetoothGatt.setCharacteristicNotification(characteristic, true);
 
             BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
